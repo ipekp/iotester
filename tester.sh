@@ -149,10 +149,11 @@ run_fio_zfs_tests() {
   cmd=(fio --name="$testname" --filename="$blockdev" \
     --rw=write --bs=4k --direct=1 \
     --sync=1 --ioengine=libaio --iodepth=1 --runtime="$run" \
-    --output-format=normal --time_based \
-    --group_reporting)
+    --output-format=json --time_based \
+    --group_reporting --output="results/${tstprefix}_$testname.json")
 
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+  exit 1
   ###
 
   # ZFS Part
