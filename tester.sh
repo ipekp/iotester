@@ -45,8 +45,6 @@ echo "Testing $blockdev on $testfile for $duration seconds ..."
 printsep
 
 isblockdev "$blockdev"
-prepblockdev "$blockdev"
-# preptestfile "$testfile" to avoid spending time creating test file ?
 runfio $blockdev $testfile $duration
 
 }
@@ -64,7 +62,7 @@ isblockdev(){
   fi
 }
 
-prepblockdev() {
+prezfs() {
 
   fdisk -l "$blockdev"
   printsep
@@ -119,11 +117,18 @@ runfio() {
   run_fio_raw_tests "$1" "$2" "$3"
 }
 
-removeparts() {
+preraw() {
   dev=$1
-  zpool destroy -f tank 2>&1
-  umount -f $dev 2>&1
-  sgdisk --zap-all $dev 2>&1
+  # User confirmation
+  printsep
+  read -r -p "WARNING: Delete all partitions on $blockdev ? Type 'Y' to confirm: " CONFIRM
+  if [[ "$CONFIRM" != "Y" ]] ; then
+    echo "Aborted."
+    exit 0
+  fi
+  zpool destroy -f tank 2>&1 > /dev/null
+  umount -f $dev 2>&1 > /dev/null
+  sgdisk --zap-all $dev 2>&1 > /dev/null
 }
 
 run_fio_zfs_tests() {
@@ -131,6 +136,8 @@ run_fio_zfs_tests() {
   blockdev="$1"
   file="$2"
   run="$3"
+
+  prezfs "$blockdev"
 
   # ZFS Part
   # Perimeter Tests
@@ -195,8 +202,8 @@ run_fio_raw_tests() {
   blockdev="$1"
   file="$2"
   run="$3"
-
-  removeparts $blockdev
+  
+  preraw $blockdev
   printsep
   fdisk -l $blockdev
 
@@ -206,7 +213,7 @@ run_fio_raw_tests() {
   testname="raw-min-lat"
   printsep "Running $testname"
   ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=$testname --filename=$file --filesize=$tstfile_size --rw=write --bs=4k --direct=1 \
+  fio --name=$testname --filename=$blockdev --rw=write --bs=4k --direct=1 \
       --sync=1 --ioengine=libaio --iodepth=1 --runtime=$run --time_based --group_reporting
   flush_cache
   printsep
@@ -216,7 +223,7 @@ run_fio_raw_tests() {
   testname="raw-max-iops"
   printsep "Running $testname"
   ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=max-iops --filename=$file --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
+  fio --name=max-iops --filename=$blockdev --rw=randread --bs=4k --direct=1 \
       --ioengine=libaio --iodepth=128 --runtime=$run --time_based --group_reporting
   flush_cache
   printsep
@@ -226,7 +233,7 @@ run_fio_raw_tests() {
   testname="raw-max-bw"
   printsep "Running $testname"
   ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=$testname --filename=$file --filesize=$tstfile_size --rw=write --bs=1M --direct=1 \
+  fio --name=$testname --filename=$blockdev --rw=write --bs=1M --direct=1 \
       --ioengine=libaio --iodepth=32 --runtime=$run --time_based --group_reporting
   flush_cache
   printsep
@@ -241,17 +248,17 @@ run_fio_raw_tests() {
   for bs in 16 64 1024; do # Simplified BS for clarity
       for qd in 1 4 16 64 128; do
           # Read direction: ARC cache, RCD read cache, QAM reorder IOPS ...
-          fio --name=sat_bs${bs}_qd${qd} --filesize=$tstfile_size --filename=$file --rw=randread --rwmixread=70 \
+          fio --name=sat_bs${bs}_qd${qd} -filename=$blockdev --rw=randread --rwmixread=70 \
               --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
               --runtime=$run --time_based --group_reporting --output-format=json > result_randread_${bs}_${qd}.json
           flush_cache
           # Write direction: RAID geometry, WCE write cache, HBA MSI-X ...
-          fio --name=sat_bs${bs}_qd${qd} --filesize=$tstfile_size --filename=$file --rw=randwrite --rwmixread=70 \
+          fio --name=sat_bs${bs}_qd${qd} -filename=$blockdev --rw=randwrite --rwmixread=70 \
               --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
               --runtime=$run --time_based --group_reporting --output-format=json > result_randwrite_${bs}_${qd}.json
           flush_cache
           # Both direction: full duplex chokes
-          fio --name=sat_bs${bs}_qd${qd} --filesize=$tstfile_size --filename=$file --rw=randrw --rwmixread=70 \
+          fio --name=sat_bs${bs}_qd${qd} --filename=$blockdev --rw=randrw --rwmixread=70 \
               --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
               --runtime=$run --time_based --group_reporting --output-format=json > result_randrw_${bs}_${qd}.json
       done
