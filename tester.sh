@@ -4,10 +4,13 @@
 # TODO retrieve run parameters
 
 # SETTING
+
+## Should be x2 RAM to avoid the ARC (irrelevant at device tests)
+tstfile_size="64G"
+tstprefix=$(date +%Y-%m-%d_%H%M%S)
+# INIT
 rm -rf tmp && mkdir tmp
 
-# Should be x2 RAM to avoid the ARC (irrelevant at device tests)
-tstfile_size="64G"
 
 
 usage() {
@@ -113,22 +116,25 @@ flush_cache(){
 }
 
 runfio() {
-  # run_fio_zfs_tests "$1" "$2" "$3"
-  run_fio_raw_tests "$1" "$2" "$3"
+  run_fio_zfs_tests "$1" "$2" "$3"
+  # run_fio_raw_tests "$1" "$2" "$3"
 }
 
 preraw() {
-  dev=$1
-  # User confirmation
-  printsep
-  read -r -p "WARNING: Delete all partitions on $blockdev ? Type 'Y' to confirm: " CONFIRM
-  if [[ "$CONFIRM" != "Y" ]] ; then
-    echo "Aborted."
-    exit 0
+
+  if [[ $(fdisk -l "$blockdev" | grep gpt | wc -l) -eq 1 ]]; then
+    dev=$1
+    # User confirmation
+    printsep
+    read -r -p "WARNING: Delete all partitions on $blockdev ? Type 'Y' to confirm: " CONFIRM
+    if [[ "$CONFIRM" != "Y" ]] ; then
+      echo "Aborted."
+      exit 0
+    fi
+    zpool destroy -f tank > /dev/null 2>&1
+    umount -f $dev > /dev/null 2>&1
+    sgdisk --zap-all $dev > /dev/null 2>&1
   fi
-  zpool destroy -f tank 2>&1 > /dev/null
-  umount -f $dev 2>&1 > /dev/null
-  sgdisk --zap-all $dev 2>&1 > /dev/null
 }
 
 run_fio_zfs_tests() {
@@ -138,39 +144,43 @@ run_fio_zfs_tests() {
   run="$3"
 
   prezfs "$blockdev"
+  #### 
+  testname="raw-min-lat"
+  cmd=(fio --name="$testname" --filename="$blockdev" \
+    --rw=write --bs=4k --direct=1 \
+    --sync=1 --ioengine=libaio --iodepth=1 --runtime="$run" \
+    --output-format=normal --time_based \
+    --group_reporting)
+
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+  ###
 
   # ZFS Part
   # Perimeter Tests
   # Min Latency sync write QD=1
-  testname="min-lat"
-  printsep "Running $testname"
-  ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=$testname --filename=$file --filesize=$tstfile_size --rw=write --bs=4k --direct=1 \
-      --sync=1 --ioengine=libaio --iodepth=1 --runtime=$run --time_based --group_reporting
-  flush_cache
-  printsep
-  waitfor_mon $testname && cat tmp/$testname.mon
+  testname="zfs-min-lat"
+  cmd=(fio --name=$testname --filename=$file \
+    --filesize=$tstfile_size --rw=write --bs=4k --direct=1 \
+    --sync=1 --ioengine=libaio --iodepth=1 \
+    --runtime=$run --time_based --group_reporting)
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
   # Max IOPS ranread QD=128 BS=4K
-  testname="max-iops"
-  printsep "Running $testname"
-  ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=max-iops --filename=$file --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
-      --ioengine=libaio --iodepth=128 --runtime=$run --time_based --group_reporting
-  flush_cache
-  printsep
-  waitfor_mon $testname && cat tmp/$testname.mon
+  testname="zfs-max-iops"
+  cmd=(fio --name=max-iops --filename=$file \
+    --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
+    --ioengine=libaio --iodepth=128 \
+    --runtime=$run --time_based --group_reporting)
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
 
   # Max BW QD=32 BS=1M
-  testname="max-iops"
-  printsep "Running $testname"
-  ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=max-bw --filename=$file --filesize=$tstfile_size --rw=write --bs=1M --direct=1 \
-      --ioengine=libaio --iodepth=32 --runtime=$run --time_based --group_reporting
-  flush_cache
-  printsep
-  waitfor_mon $testname && cat tmp/$testname.mon
-  exit 1
+  testname="zfs-max-iops"
+  cmd=(fio --name=max-bw --filename=$file \
+    --filesize=$tstfile_size --rw=write --bs=1M --direct=1 \
+    --ioengine=libaio --iodepth=32 --runtime=$run \
+    --time_based --group_reporting)
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
   # Saturation Matrix both direction and duplex
   # Purpose of finding bottlenecks in the datapath
@@ -180,21 +190,72 @@ run_fio_zfs_tests() {
   for bs in 16 64 1024; do # Simplified BS for clarity
       for qd in 1 4 16 64 128; do
           # Read direction: ARC cache, RCD read cache, QAM reorder IOPS ...
-          fio --name=sat_bs${bs}_qd${qd} --filesize=$tstfile_size --filename=$file --rw=randread --rwmixread=70 \
-              --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
-              --runtime=$run --time_based --group_reporting --output-format=json > result_randread_${bs}_${qd}.json
-          flush_cache
+          testname="zfs_randread_sat_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname \
+            --filesize=$tstfile_size --filename=$file \
+            --rw=randread --rwmixread=70 \
+            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output-format=json)
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+          
           # Write direction: RAID geometry, WCE write cache, HBA MSI-X ...
-          fio --name=sat_bs${bs}_qd${qd} --filesize=$tstfile_size --filename=$file --rw=randwrite --rwmixread=70 \
-              --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
-              --runtime=$run --time_based --group_reporting --output-format=json > result_randwrite_${bs}_${qd}.json
-          flush_cache
+          testname="zfs_randwrite_sat_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname --filesize=$tstfile_size \
+            --filename=$file --rw=randwrite --rwmixread=70 \
+            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output-format=json)
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+          
           # Both direction: full duplex chokes
-          fio --name=sat_bs${bs}_qd${qd} --filesize=$tstfile_size --filename=$file --rw=randrw --rwmixread=70 \
-              --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
-              --runtime=$run --time_based --group_reporting --output-format=json > result_randrw_${bs}_${qd}.json
+          testname="zfs_randrw_sat_bs${bs}_qd${qd}"
+          cmd=(fio --name=sat_bs${bs}_qd${qd} \
+            --filesize=$tstfile_size --filename=$file \
+            --rw=randrw --rwmixread=70 \
+            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output-format=json)
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
       done
   done
+}
+
+exec_fio() {
+
+  # total args: command array..., testname, filename, duration
+  local total=$#
+  if (( total < 4 )); then
+    echo "usage: exec_fio <cmd...> testname filename duration" >&2
+    return 2
+  fi
+
+  local testname="${@: -3:1}"
+  local filename="${@: -2:1}"
+  local duration="${@: -1:1}"
+  local -a cmd=( "${@:1:$(( total-3 ))}" )
+
+  printsep "$testname"
+  echo "Running & monitoring: ${cmd[*]}"
+
+  ./mon.sh "$(basename "$filename")" "$duration" > "tmp/$testname.mon" 2>&1 &
+  MON_PID=$!
+
+  # run command, capture stdout+stderr
+  out=$("${cmd[@]}" 2>&1)
+
+  printf '%s\n' "$out"
+  echo && cat "tmp/$testname.mon"
+  flush_cache
+  printsep
+
+  # stop/wait monitor
+  if kill -0 "$MON_PID" 2>/dev/null; then
+    kill "$MON_PID" 2>/dev/null || true
+    wait "$MON_PID" 2>/dev/null || true
+  fi
+
+  return $rc
 }
 
 run_fio_raw_tests() {
@@ -211,34 +272,31 @@ run_fio_raw_tests() {
   # Perimeter Tests
   # Min Latency sync write QD=1
   testname="raw-min-lat"
-  printsep "Running $testname"
-  ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=$testname --filename=$blockdev --rw=write --bs=4k --direct=1 \
-      --sync=1 --ioengine=libaio --iodepth=1 --runtime=$run --time_based --group_reporting
-  flush_cache
-  printsep
-  waitfor_mon $testname && cat tmp/$testname.mon
+  cmd=(fio --name="$testname" --filename="$blockdev" \
+    --rw=write --bs=4k --direct=1 \
+    --sync=1 --ioengine=libaio --iodepth=1 --runtime="$run" \
+    --output-format=normal --time_based \
+    --group_reporting)
+
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
   # Max IOPS ranread QD=128 BS=4K
   testname="raw-max-iops"
-  printsep "Running $testname"
-  ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=max-iops --filename=$blockdev --rw=randread --bs=4k --direct=1 \
-      --ioengine=libaio --iodepth=128 --runtime=$run --time_based --group_reporting
-  flush_cache
-  printsep
-  waitfor_mon $testname && cat tmp/$testname.mon
+  cmd=(fio --name=max-iops --filename=$blockdev \
+    --rw=randread --bs=4k --direct=1 \
+    --ioengine=libaio --iodepth=128 \
+    --runtime=$run --time_based --group_reporting)
+
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
   # Max BW QD=32 BS=1M
   testname="raw-max-bw"
-  printsep "Running $testname"
-  ./mon.sh $(basename $blockdev) $run > "tmp/$testname.mon" 2>&1 &
-  fio --name=$testname --filename=$blockdev --rw=write --bs=1M --direct=1 \
-      --ioengine=libaio --iodepth=32 --runtime=$run --time_based --group_reporting
-  flush_cache
-  printsep
-  waitfor_mon $testname && cat tmp/$testname.mon
-  exit 1
+  cmd=(fio --name=$testname --filename=$blockdev \
+    --rw=write --bs=1M --direct=1 \
+    --ioengine=libaio --iodepth=32 \
+    --runtime=$run --time_based --group_reporting)
+
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
   # Saturation Matrix both direction and duplex
   # Purpose of finding bottlenecks in the datapath
@@ -248,19 +306,34 @@ run_fio_raw_tests() {
   for bs in 16 64 1024; do # Simplified BS for clarity
       for qd in 1 4 16 64 128; do
           # Read direction: ARC cache, RCD read cache, QAM reorder IOPS ...
-          fio --name=sat_bs${bs}_qd${qd} -filename=$blockdev --rw=randread --rwmixread=70 \
-              --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
-              --runtime=$run --time_based --group_reporting --output-format=json > result_randread_${bs}_${qd}.json
-          flush_cache
+          testname="sat_randread_bs${bs}_qd${qd}"
+          cmd=(fio --name=sat_bs${bs}_qd${qd} \
+            --filename=$blockdev --rw=randread --rwmixread=70 \
+            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output-format=json)
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+         
           # Write direction: RAID geometry, WCE write cache, HBA MSI-X ...
-          fio --name=sat_bs${bs}_qd${qd} -filename=$blockdev --rw=randwrite --rwmixread=70 \
-              --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
-              --runtime=$run --time_based --group_reporting --output-format=json > result_randwrite_${bs}_${qd}.json
-          flush_cache
+          testname="sat_randwrite_bs${bs}_qd${qd}"
+          cmd=(fio --name=sat_bs${bs}_qd${qd} -filename=$blockdev \
+            --rw=randwrite --rwmixread=70 \
+            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output-format=json)
+
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+          
           # Both direction: full duplex chokes
-          fio --name=sat_bs${bs}_qd${qd} --filename=$blockdev --rw=randrw --rwmixread=70 \
-              --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
-              --runtime=$run --time_based --group_reporting --output-format=json > result_randrw_${bs}_${qd}.json
+          testname="sat_randrw_bs${bs}_qd${qd}"
+          cmd=(fio --name=sat_bs${bs}_qd${qd} --filename=$blockdev \
+            --rw=randrw --rwmixread=70 \
+            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output-format=json)
+          
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
       done
   done
 }
