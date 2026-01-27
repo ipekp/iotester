@@ -4,8 +4,6 @@ DEVICE="$1"
 DURATION=$2
 METRICS="r/s rkB/s r_await w/s wkB/s w_await aqu-sz %util"
 
-echo "Comparing HBA Performance: Monitoring $DEVICE and CPU for $DURATION seconds..."
-
 # -c for CPU, -d for Device, -x for extended, -y to skip first boot report
 iostat -c -d -x -y 1 "$DURATION" | awk -v dev="$DEVICE" -v target_metrics="$METRICS" '
 BEGIN {
