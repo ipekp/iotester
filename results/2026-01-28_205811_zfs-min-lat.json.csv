@@ -1,2 +1,1 @@
-jobname,BS,QD,IOPS,BW_MBs,clat_avg_us,p99_us,sys_cpu,usr_cpu,iostat_cpu_usr,iostat_cpu_sys,iostat_cpu_iowait,iostat_dev_util
-zfs-min-lat,4k,1,1418.59,5.54,6.96,7.52,16.2,1.42,0.13,2.61,0.03,31.32
+jobname,BS,QD,IOPS,BW_MBs,sys_cpu,usr_cpu,clat_avg_us,clat_p99_us,slat_avg_us,slat_p99_us,lat_avg_us,lat_p99_us

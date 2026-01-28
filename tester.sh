@@ -163,8 +163,8 @@ run_fio_zfs_tests() {
   # Measuring datapath RTT, getting optimal latency
   testname="zfs-min-lat"
   cmd=(fio --name=$testname --filename=$file \
-    --filesize=$tstfile_size --rw=write --bs=4k --direct=1 \
-    --sync=1 --ioengine=libaio --iodepth=1 \
+    --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
+    --ioengine=libaio --iodepth=4 \
     --runtime=$run --time_based --group_reporting \
     --output="results/${tstprefix}_$testname.json" \
     --output-format=normal,json
