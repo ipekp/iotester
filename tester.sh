@@ -6,7 +6,7 @@
 # SETTING
 
 ## Should be x2 RAM to avoid the ARC (irrelevant at device tests)
-tstfile_size="64G"
+tstfile_size="20G"
 tstprefix=$(date +%Y-%m-%d_%H%M%S)
 # INIT
 rm -rf tmp && mkdir tmp
@@ -144,17 +144,37 @@ run_fio_zfs_tests() {
   run="$3"
 
   prezfs "$blockdev"
-  #### 
-  testname="raw-min-lat"
+
+  testname="zfs-plot"
+  cmd=(fio --name=$testname \
+    --filesize=$tstfile_size --filename=$file \
+    --rw=randread --rwmixread=70 --numjobs=1 \
+    --bs=64k --direct=1 --ioengine=libaio --iodepth=4 \
+    --runtime=$run --time_based --group_reporting \
+    --output-format=json --output="results/${tstprefix}_$testname.json" \
+    --write_bw_log="logs/${tstprefix}_$testname_bw.log" \
+    --write_lat_log="logs/${tstprefix}_$testname_lat.log" \
+    --write_hist_log="logs/${tstprefix}_$testname_hist.log" \
+    --write_iops_log="logs/${tstprefix}_$testname_iops.log"
+      )
+  exec_fio "${cmd[@]}" "$testname" "$file" "$run"
+
+  exit 1
+  #####################################
+
+  testname="zfs-min-lat"
   cmd=(fio --name="$testname" --filename="$blockdev" \
     --rw=write --bs=4k --direct=1 \
     --sync=1 --ioengine=libaio --iodepth=1 --runtime="$run" \
     --output-format=json --time_based \
-    --group_reporting --output="results/${tstprefix}_$testname.json")
+    --group_reporting --output="results/${tstprefix}_$testname.json"\
+    --write_bw_log="logs/${tstprefix}_$testname_bw.log" \
+    --write_lat_log="logs/${tstprefix}_$testname_lat.log" \
+    --write_hist_log="logs/${tstprefix}_$testname_hist.log" \
+    --write_iops_log="logs/${tstprefix}_$testname_iops.log"
+      )
 
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
-  exit 1
-  ###
 
   # ZFS Part
   # Perimeter Tests

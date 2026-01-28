@@ -4,6 +4,12 @@ DEVICE="$1"
 DURATION=$2
 METRICS="r/s rkB/s r_await w/s wkB/s w_await aqu-sz %util"
 
+if [[ ! -b "$DEVICE" ]]
+then  
+  echo "$DEVICE is not BLK"
+  DEVICE="sdb"
+fi
+
 # -c for CPU, -d for Device, -x for extended, -y to skip first boot report
 iostat -c -d -x -y 1 "$DURATION" | awk -v dev="$DEVICE" -v target_metrics="$METRICS" '
 BEGIN {
