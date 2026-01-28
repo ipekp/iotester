@@ -6,7 +6,7 @@ METRICS="r/s rkB/s r_await w/s wkB/s w_await aqu-sz %util"
 
 if [[ ! -b "$DEVICE" ]]
 then  
-  echo "$DEVICE is not BLK"
+  #echo "$DEVICE is not BLK"
   DEVICE="sdb"
 fi
 

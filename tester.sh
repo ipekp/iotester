@@ -112,6 +112,8 @@ waitfor_mon(){
 flush_cache(){
   sync
   echo 3 > /proc/sys/vm/drop_caches
+  printsep 
+  echo "FLUSHING CACHES"
   sleep 10
 }
 
@@ -145,46 +147,31 @@ run_fio_zfs_tests() {
 
   prezfs "$blockdev"
 
-  testname="zfs-plot"
-  cmd=(fio --name=$testname \
-    --filesize=$tstfile_size --filename=$file \
-    --rw=randread --rwmixread=70 --numjobs=1 \
-    --bs=64k --direct=1 --ioengine=libaio --iodepth=4 \
-    --runtime=$run --time_based --group_reporting \
-    --output-format=json --output="results/${tstprefix}_$testname.json" \
-    --write_bw_log="logs/${tstprefix}_$testname_bw.log" \
-    --write_lat_log="logs/${tstprefix}_$testname_lat.log" \
-    --write_hist_log="logs/${tstprefix}_$testname_hist.log" \
-    --write_iops_log="logs/${tstprefix}_$testname_iops.log"
-      )
-  exec_fio "${cmd[@]}" "$testname" "$file" "$run"
-
-  exit 1
+  #####################################
+  ### OWN TESTING
   #####################################
 
-  testname="zfs-min-lat"
-  cmd=(fio --name="$testname" --filename="$blockdev" \
-    --rw=write --bs=4k --direct=1 \
-    --sync=1 --ioengine=libaio --iodepth=1 --runtime="$run" \
-    --output-format=json --time_based \
-    --group_reporting --output="results/${tstprefix}_$testname.json"\
-    --write_bw_log="logs/${tstprefix}_$testname_bw.log" \
-    --write_lat_log="logs/${tstprefix}_$testname_lat.log" \
-    --write_hist_log="logs/${tstprefix}_$testname_hist.log" \
-    --write_iops_log="logs/${tstprefix}_$testname_iops.log"
-      )
+  # testname="zfs-min-lat"
+  # cmd=(fio --name="$testname" --filename="$blockdev" \
+  #   --rw=write --bs=4k --direct=1 \
+  #   --sync=1 --ioengine=libaio --iodepth=8 --runtime="$run" \
+  #   --output-format=normal,json --time_based \
+  #   --group_reporting --output="results/${tstprefix}_$testname.json"
+  #     )
 
-  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
-
-  # ZFS Part
-  # Perimeter Tests
   # Min Latency sync write QD=1
+  # Measuring datapath RTT, getting optimal latency
   testname="zfs-min-lat"
   cmd=(fio --name=$testname --filename=$file \
     --filesize=$tstfile_size --rw=write --bs=4k --direct=1 \
     --sync=1 --ioengine=libaio --iodepth=1 \
-    --runtime=$run --time_based --group_reporting)
+    --runtime=$run --time_based --group_reporting \
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
+  exit 1
 
   # Max IOPS ranread QD=128 BS=4K
   testname="zfs-max-iops"
@@ -194,8 +181,8 @@ run_fio_zfs_tests() {
     --runtime=$run --time_based --group_reporting)
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
-
   # Max BW QD=32 BS=1M
+  # Measuring BW
   testname="zfs-max-iops"
   cmd=(fio --name=max-bw --filename=$file \
     --filesize=$tstfile_size --rw=write --bs=1M --direct=1 \
@@ -205,39 +192,42 @@ run_fio_zfs_tests() {
 
   # Saturation Matrix both direction and duplex
   # Purpose of finding bottlenecks in the datapath
+  # 4K: rare small DB writes, mostly to measure the datapath latency
   # 16K: database workload, look latency
   # 64K: virtualisation workload, look latency
   # 1M: large file manipulation workload, look BW
-  for bs in 16 64 1024; do # Simplified BS for clarity
-      for qd in 1 4 16 64 128; do
+  for bs in 4 16 64 1024; do
+      for qd in 1 2 4 8 16 64 128; do
           # Read direction: ARC cache, RCD read cache, QAM reorder IOPS ...
-          testname="zfs_randread_sat_bs${bs}_qd${qd}"
+          testname="zfs_randread_bs${bs}_qd${qd}"
           cmd=(fio --name=$testname \
             --filesize=$tstfile_size --filename=$file \
-            --rw=randread --rwmixread=70 \
-            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+            --rw=randread --bs=${bs}k --direct=1 \
+            --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
-            --output-format=json)
+            --output-format=normal,json)
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
           
-          # Write direction: RAID geometry, WCE write cache, HBA MSI-X ...
-          testname="zfs_randwrite_sat_bs${bs}_qd${qd}"
+          # Write direction: Write caches (WCE, HBA), HBA MSI-X ...
+          testname="zfs_randwrite_bs${bs}_qd${qd}"
           cmd=(fio --name=$testname --filesize=$tstfile_size \
-            --filename=$file --rw=randwrite --rwmixread=70 \
+            --filename=$file --rw=randwrite \
             --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
-            --output-format=json)
+            --output-format=normal,json)
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
           
           # Both direction: full duplex chokes
-          testname="zfs_randrw_sat_bs${bs}_qd${qd}"
-          cmd=(fio --name=sat_bs${bs}_qd${qd} \
-            --filesize=$tstfile_size --filename=$file \
-            --rw=randrw --rwmixread=70 \
-            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+          testname="zfs_randrw_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname --filesize=$tstfile_size \
+            --filename=$file --rw=randrw --bs=${bs}k --direct=1 \
+            --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
-            --output-format=json)
+            --output-format=normal,json)
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
+          echo "single pass"
+          exit 1
       done
   done
 }
@@ -257,16 +247,18 @@ exec_fio() {
   local -a cmd=( "${@:1:$(( total-3 ))}" )
 
   printsep "$testname"
-  echo "Running & monitoring: ${cmd[*]}"
+  echo "Running & monitoring:"
+  printsep
+  echo "${cmd[*]}"
+  printsep
 
-  ./mon.sh "$(basename "$filename")" "$duration" > "tmp/$testname.mon" 2>&1 &
+  ./mon.sh "$(basename "$filename")" "$duration" > "tmp/${tstprefix}_$testname.mon" 2>&1 &
   MON_PID=$!
 
   # run command, capture stdout+stderr
   out=$("${cmd[@]}" 2>&1)
 
   printf '%s\n' "$out"
-  echo && cat "tmp/$testname.mon"
   flush_cache
   printsep
 
@@ -275,6 +267,7 @@ exec_fio() {
     kill "$MON_PID" 2>/dev/null || true
     wait "$MON_PID" 2>/dev/null || true
   fi
+  echo && cat "tmp/${tstprefix}_$testname.mon" >> "results/${tstprefix}_$testname.json"
 
   return $rc
 }
