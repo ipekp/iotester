@@ -118,8 +118,8 @@ flush_cache(){
 }
 
 runfio() {
+  run_fio_raw_tests "$1" "$2" "$3"
   run_fio_zfs_tests "$1" "$2" "$3"
-  # run_fio_raw_tests "$1" "$2" "$3"
 }
 
 preraw() {
@@ -280,6 +280,88 @@ run_fio_raw_tests() {
   preraw $blockdev
   printsep
   fdisk -l $blockdev
+
+  # Min Latency sync write QD=1
+  # Measuring datapath RTT, getting optimal latency
+  testname="raw_min_lat"
+  cmd=(fio --name=$testname --filename=$blockdev \
+    --rw=randread --bs=4k --direct=1 \
+    --ioengine=libaio --iodepth=1 \
+    --runtime=$run --time_based --group_reporting \
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
+  # Max IOPS ranread QD=128 BS=4K
+  testname="raw_max_iops"
+  cmd=(fio --name=$testname --filename=$blockdev \
+    --rw=randread --bs=4k --direct=1 \
+    --ioengine=libaio --iodepth=128 \
+    --runtime=$run --time_based --group_reporting
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
+
+  # Max BW QD=32 BS=1M
+  # Measuring BW
+  testname="raw_max_bw"
+  cmd=(fio --name=$testname --filename=$blockdev \
+    --rw=write --bs=1M --direct=1 \
+    --ioengine=libaio --iodepth=32 \
+    --runtime=$run --time_based --group_reporting \
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
+  # Saturation Matrix both direction and duplex
+  # Purpose of finding bottlenecks in the datapath
+  # 4K: rare small DB writes, mostly to measure the datapath latency
+  # 16K: database workload, look latency
+  # 64K: virtualisation workload, look latency
+  # 1M: large file manipulation workload, look BW
+  for bs in 4 16 64 1024; do
+      for qd in 1 2 4 8 16 64 128; do
+          # Read direction: ARC cache, RCD read cache, QAM reorder IOPS ...
+          testname="raw_randread_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname \
+            --filesize=$tstfile_size --filename=$blockdev \
+            --rw=randread --bs=${bs}k --direct=1 \
+            --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+          
+          # Write direction: Write caches (WCE, HBA), HBA MSI-X ...
+          testname="raw_randwrite_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname --filename=$blockdev \
+            --rw=randwrite --bs=${bs}k --direct=1 \
+            --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+          
+          # Both direction: full duplex chokes
+          testname="raw_randrw_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname --filename=$blockdev \
+            --rw=randrw --bs=${bs}k --direct=1 \
+            --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+      done
+  done
+
+########
 
   # ZFS Part
   # Perimeter Tests
