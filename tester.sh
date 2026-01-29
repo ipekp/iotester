@@ -256,11 +256,10 @@ exec_fio() {
   MON_PID=$!
 
   # run command, capture stdout+stderr
-  out=$("${cmd[@]}" 2>&1)
+  "${cmd[@]}" > /dev/null 2>&1
 
   printf '%s\n' "$out"
   flush_cache
-  printsep
 
   # stop/wait monitor
   if kill -0 "$MON_PID" 2>/dev/null; then
@@ -268,6 +267,7 @@ exec_fio() {
     wait "$MON_PID" 2>/dev/null || true
   fi
   echo && cat "tmp/${tstprefix}_$testname.mon" >> "results/${tstprefix}_$testname.json"
+  printf "\n%s\n\n" "Command was: ${cmd[*]}" >> "results/${tstprefix}_$testname.json"
 
   return $rc
 }

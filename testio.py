@@ -44,9 +44,7 @@ def parse_fio(file_path):
             z["clat_avg_us"] = round(stats['clat_ns']['mean'] / 1000, 2)
             z["clat_p99_us"] = round(get_p99(stats['clat_ns']) / 1000, 2)
             z["slat_avg_us"] = round(stats['slat_ns']['mean'] / 1000, 2)
-            z["slat_p99_us"] = round(get_p99(stats['slat_ns']) / 1000, 2)
             z["lat_avg_us"] = round(stats['lat_ns']['mean'] / 1000, 2)
-            z["lat_p99_us"] = round(get_p99(stats['lat_ns']) / 1000, 2)
 
             return z
         except Exception as e:
@@ -69,7 +67,7 @@ def parse_iostat(data, file_path):
 
 def main():
     results_dir = 'results/'
-    master_output = 'fio_master_results.csv'
+    master_output = 'tmp/fio_master_results.csv'
     
     if not os.path.exists(results_dir):
         print(f"Error: Directory '{results_dir}' not found.")
