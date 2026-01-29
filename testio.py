@@ -43,6 +43,7 @@ def parse_fio(file_path):
 
             z["clat_avg_us"] = round(stats['clat_ns']['mean'] / 1000, 2)
             z["clat_p99_us"] = round(get_p99(stats['clat_ns']) / 1000, 2)
+            z["clat_ratio"] = round(z["clat_p99_us"] / z["clat_avg_us"] , 2)
             z["slat_avg_us"] = round(stats['slat_ns']['mean'] / 1000, 2)
             z["lat_avg_us"] = round(stats['lat_ns']['mean'] / 1000, 2)
 

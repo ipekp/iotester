@@ -146,48 +146,42 @@ run_fio_zfs_tests() {
   run="$3"
 
   prezfs "$blockdev"
-
-  #####################################
-  ### OWN TESTING
-  #####################################
-
-  # testname="zfs-min-lat"
-  # cmd=(fio --name="$testname" --filename="$blockdev" \
-  #   --rw=write --bs=4k --direct=1 \
-  #   --sync=1 --ioengine=libaio --iodepth=8 --runtime="$run" \
-  #   --output-format=normal,json --time_based \
-  #   --group_reporting --output="results/${tstprefix}_$testname.json"
-  #     )
+  flush_cache
 
   # Min Latency sync write QD=1
   # Measuring datapath RTT, getting optimal latency
-  testname="zfs-min-lat"
+  testname="zfs_min_lat"
   cmd=(fio --name=$testname --filename=$file \
     --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
-    --ioengine=libaio --iodepth=4 \
+    --ioengine=libaio --iodepth=1 \
     --runtime=$run --time_based --group_reporting \
     --output="results/${tstprefix}_$testname.json" \
     --output-format=normal,json
   )
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
-  exit 1
-
   # Max IOPS ranread QD=128 BS=4K
-  testname="zfs-max-iops"
+  testname="zfs_max_iops"
   cmd=(fio --name=max-iops --filename=$file \
     --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
     --ioengine=libaio --iodepth=128 \
-    --runtime=$run --time_based --group_reporting)
+    --runtime=$run --time_based --group_reporting
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
 
   # Max BW QD=32 BS=1M
   # Measuring BW
-  testname="zfs-max-iops"
+  testname="zfs_max_bw"
   cmd=(fio --name=max-bw --filename=$file \
     --filesize=$tstfile_size --rw=write --bs=1M --direct=1 \
     --ioengine=libaio --iodepth=32 --runtime=$run \
-    --time_based --group_reporting)
+    --time_based --group_reporting
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
   # Saturation Matrix both direction and duplex
@@ -205,7 +199,10 @@ run_fio_zfs_tests() {
             --rw=randread --bs=${bs}k --direct=1 \
             --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
-            --output-format=normal,json)
+            --output-format=normal,json
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
           
           # Write direction: Write caches (WCE, HBA), HBA MSI-X ...
@@ -214,7 +211,9 @@ run_fio_zfs_tests() {
             --filename=$file --rw=randwrite \
             --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
-            --output-format=normal,json)
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
           
           # Both direction: full duplex chokes
@@ -223,11 +222,11 @@ run_fio_zfs_tests() {
             --filename=$file --rw=randrw --bs=${bs}k --direct=1 \
             --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
-            --output-format=normal,json)
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
-
-          echo "single pass"
-          exit 1
+          
       done
   done
 }
