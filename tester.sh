@@ -118,8 +118,12 @@ flush_cache(){
 }
 
 runfio() {
-  run_fio_raw_tests "$1" "$2" "$3"
-  run_fio_zfs_tests "$1" "$2" "$3"
+  flush_cache
+  run_fio_ext4_tests "$1" "$2" "$3"
+  # flush_cache
+  # run_fio_raw_tests "$1" "$2" "$3"
+  # flush_cache
+  # run_fio_zfs_tests "$1" "$2" "$3"
 }
 
 preraw() {
@@ -134,9 +138,116 @@ preraw() {
       exit 0
     fi
     zpool destroy -f tank > /dev/null 2>&1
+    wipefs -a /dev/sdb > /dev/null 2>&1
+    zpool labelclear /dev/sdb > /dev/null 2>&1
     umount -f $dev > /dev/null 2>&1
     sgdisk --zap-all $dev > /dev/null 2>&1
   fi
+}
+preext4() {
+
+  dev=$1
+  printsep
+  echo "Formatting $dev to ext4 ..."
+  if [[ $(mount -l | grep sdb | grep ext4 | wc -l) -eq 0 ]]; then
+    sgdisk --zap-all $dev > /dev/null 2>&1
+    wipefs -a $dev
+    zpool labelcreal $dev
+    mkfs.ext4 -b 4096 $dev
+    mkdir /tank
+    mount -o discard,noatime $dev /tank
+  fi
+
+}
+run_fio_ext4_tests() {
+  blockdev="$1"
+  file="$2"
+  run="$3"
+
+  preext4 "$blockdev"
+
+  # Min Latency sync write QD=1
+  # Measuring datapath RTT, getting optimal latency
+  testname="ext4_min_lat"
+  cmd=(fio --name=$testname --filename=$file \
+    --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
+    --ioengine=libaio --iodepth=1 \
+    --runtime=$run --time_based --group_reporting \
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
+  # Max IOPS ranread QD=128 BS=4K
+  testname="ext4_max_iops"
+  cmd=(fio --name=$testname --filename=$file \
+    --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
+    --ioengine=libaio --iodepth=128 \
+    --runtime=$run --time_based --group_reporting
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
+
+  # Max BW QD=32 BS=1M
+  # Measuring BW
+  testname="ext4_max_bw"
+  cmd=(fio --name=$testname --filename=$file \
+    --filesize=$tstfile_size --rw=write --bs=1M --direct=1 \
+    --ioengine=libaio --iodepth=32 --runtime=$run \
+    --time_based --group_reporting
+    --output="results/${tstprefix}_$testname.json" \
+    --output-format=normal,json
+  )
+  exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+
+  # Saturation Matrix both direction and duplex
+  # Purpose of finding bottlenecks in the datapath
+  # 4K: rare small DB writes, mostly to measure the datapath latency
+  # 16K: database workload, look latency
+  # 64K: virtualisation workload, look latency
+  # 1M: large file manipulation workload, look BW
+  for bs in 4 16 64 1024; do
+      for qd in 1 2 4 8 16 64 128; do
+          # Read direction: ARC cache, RCD read cache, QAM reorder IOPS ...
+          testname="ext4_randread_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname \
+            --filesize=$tstfile_size --filename=$file \
+            --rw=randread --bs=${bs}k --direct=1 \
+            --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output-format=normal,json
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+          
+          # Write direction: Write caches (WCE, HBA), HBA MSI-X ...
+          testname="ext4_randwrite_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname --filesize=$tstfile_size \
+            --filename=$file --rw=randwrite \
+            --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+          
+          # Both direction: full duplex chokes
+          testname="ext4_randrw_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname --filesize=$tstfile_size \
+            --filename=$file --rw=randrw --bs=${bs}k --direct=1 \
+            --ioengine=libaio --iodepth=$qd \
+            --runtime=$run --time_based --group_reporting \
+            --output="results/${tstprefix}_$testname.json" \
+            --output-format=normal,json
+          )
+          exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
+          echo "ext 4 test 1 pass"
+          exit 1 
+      done
+  done
 }
 
 run_fio_zfs_tests() {
@@ -146,7 +257,6 @@ run_fio_zfs_tests() {
   run="$3"
 
   prezfs "$blockdev"
-  flush_cache
 
   # Min Latency sync write QD=1
   # Measuring datapath RTT, getting optimal latency
