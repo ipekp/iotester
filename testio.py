@@ -63,6 +63,7 @@ def parse_iostat(data, file_path):
     data["iostat_cpu_sys"] = safe_search(r"%system[^\d]+([\d.]+)", raw_data)
     data["iostat_cpu_iowait"] = safe_search(r"%iowait[^\d]+([\d.]+)", raw_data)
     data["iostat_dev_util"] = safe_search(r"%util[^\d]+([\d.]+)", raw_data)
+    data["zz"] = re.search(r".*}(.*)", raw_data, re.DOTALL).group(1).strip()
     return data
 
 def main():
