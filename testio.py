@@ -67,7 +67,7 @@ def parse_iostat(data, file_path):
 
 def main():
     results_dir = 'results/'
-    master_output = 'tmp/fio_master_results.csv'
+    master_output = 'results/fio_master_results.csv'
     
     if not os.path.exists(results_dir):
         print(f"Error: Directory '{results_dir}' not found.")
