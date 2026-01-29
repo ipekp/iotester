@@ -119,11 +119,11 @@ flush_cache(){
 
 runfio() {
   flush_cache
-  run_fio_ext4_tests "$1" "$2" "$3"
+  # run_fio_ext4_tests "$1" "$2" "$3"
   # flush_cache
   # run_fio_raw_tests "$1" "$2" "$3"
   # flush_cache
-  # run_fio_zfs_tests "$1" "$2" "$3"
+  run_fio_zfs_tests "$1" "$2" "$3"
 }
 
 preraw() {
@@ -272,7 +272,7 @@ run_fio_zfs_tests() {
 
   # Max IOPS ranread QD=128 BS=4K
   testname="zfs_max_iops"
-  cmd=(fio --name=max-iops --filename=$file \
+  cmd=(fio --name=$testname --filename=$file \
     --filesize=$tstfile_size --rw=randread --bs=4k --direct=1 \
     --ioengine=libaio --iodepth=128 \
     --runtime=$run --time_based --group_reporting
@@ -285,7 +285,7 @@ run_fio_zfs_tests() {
   # Max BW QD=32 BS=1M
   # Measuring BW
   testname="zfs_max_bw"
-  cmd=(fio --name=max-bw --filename=$file \
+  cmd=(fio --name=$testname --filename=$file \
     --filesize=$tstfile_size --rw=write --bs=1M --direct=1 \
     --ioengine=libaio --iodepth=32 --runtime=$run \
     --time_based --group_reporting
@@ -336,7 +336,8 @@ run_fio_zfs_tests() {
             --output-format=normal,json
           )
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
-          
+          echo "test du parametre BIOS disk cache for non-raid"
+          exit 1        
       done
   done
 }
@@ -476,7 +477,7 @@ run_fio_raw_tests() {
   # ZFS Part
   # Perimeter Tests
   # Min Latency sync write QD=1
-  testname="raw-min-lat"
+  testname="raw_min_lat"
   cmd=(fio --name="$testname" --filename="$blockdev" \
     --rw=write --bs=4k --direct=1 \
     --sync=1 --ioengine=libaio --iodepth=1 --runtime="$run" \
@@ -486,8 +487,8 @@ run_fio_raw_tests() {
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
   # Max IOPS ranread QD=128 BS=4K
-  testname="raw-max-iops"
-  cmd=(fio --name=max-iops --filename=$blockdev \
+  testname="raw_max_iops"
+  cmd=(fio --name=$testname --filename=$blockdev \
     --rw=randread --bs=4k --direct=1 \
     --ioengine=libaio --iodepth=128 \
     --runtime=$run --time_based --group_reporting)
@@ -495,7 +496,7 @@ run_fio_raw_tests() {
   exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
 
   # Max BW QD=32 BS=1M
-  testname="raw-max-bw"
+  testname="raw_max_bw"
   cmd=(fio --name=$testname --filename=$blockdev \
     --rw=write --bs=1M --direct=1 \
     --ioengine=libaio --iodepth=32 \
@@ -511,8 +512,8 @@ run_fio_raw_tests() {
   for bs in 16 64 1024; do # Simplified BS for clarity
       for qd in 1 4 16 64 128; do
           # Read direction: ARC cache, RCD read cache, QAM reorder IOPS ...
-          testname="sat_randread_bs${bs}_qd${qd}"
-          cmd=(fio --name=sat_bs${bs}_qd${qd} \
+          testname="raw_randread_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname \
             --filename=$blockdev --rw=randread --rwmixread=70 \
             --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
@@ -520,8 +521,8 @@ run_fio_raw_tests() {
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
          
           # Write direction: RAID geometry, WCE write cache, HBA MSI-X ...
-          testname="sat_randwrite_bs${bs}_qd${qd}"
-          cmd=(fio --name=sat_bs${bs}_qd${qd} -filename=$blockdev \
+          testname="raw_randwrite_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname -filename=$blockdev \
             --rw=randwrite --rwmixread=70 \
             --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
@@ -530,8 +531,8 @@ run_fio_raw_tests() {
           exec_fio "${cmd[@]}" "$testname" "$blockdev" "$run"
           
           # Both direction: full duplex chokes
-          testname="sat_randrw_bs${bs}_qd${qd}"
-          cmd=(fio --name=sat_bs${bs}_qd${qd} --filename=$blockdev \
+          testname="raw_randrw_bs${bs}_qd${qd}"
+          cmd=(fio --name=$testname --filename=$blockdev \
             --rw=randrw --rwmixread=70 \
             --bs=${bs}k --direct=1 --ioengine=libaio --iodepth=$qd \
             --runtime=$run --time_based --group_reporting \
