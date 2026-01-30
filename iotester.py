@@ -4,6 +4,11 @@ import argparse
 import logging
 import sys
 import re
+import subprocess
+import shlex
+
+# GLOBALS
+JOB_TIMEOUT = 120
 
 # Configure logging DEBUG: 10, INFO: 20, WARNING: 30, ERROR: 40, CRITICAL: 50
 logging.basicConfig(
@@ -78,7 +83,6 @@ def getjobs(path):
 
 
 def normalizecmds(argv, cmds):
-
     # Namespace(setname=None, jobfile='jobs.txt', filename=None, filesize=None, runtime=None)
     # recup param list
     norms = []
@@ -116,16 +120,51 @@ def normalizecmds(argv, cmds):
                 args.append(f"{key}")
             else:
                 args.append(f"{key}={v}")
-        res.append(" ".join(args))
-
+        res.append(args)
     return res
 
+
+def run_cmd(cmd: list | str,
+            check: bool = False,
+            capture_output: bool = True,
+            text: bool = True,
+            timeout: int | None = JOB_TIMEOUT,
+            cwd: str | None = None,
+            env: dict | None = None
+            ):
+
+    if isinstance(cmd, str):
+        args = shlex.split(cmd)
+    else:
+        args = list(cmd)
+
+    try:
+        completed = subprocess.run(
+                args,
+                check=check,
+                capture_output=capture_output,
+                text=text,
+                timeout=timeout,
+                cwd=cwd,
+                env=env
+        )
+    except subprocess.CalledProcessError as e:
+        return e.returncode, e.stdout or "", e.stderr or ""
+    except subprocess.TimeoutExpired as e:
+        return -1, e.stdout or "", e.stderr or f"Timeout after {timeout}s"
+    except Exception as e:
+        return -1, "", str(e)
+    return completed.returncode, completed.stdout or "", completed.stderr or ""
 
 def prepare_tests(argv):
 
     cmds = getjobs(argv.jobfile)
-
     cmds = normalizecmds(argv, cmds)
+    # print(cmds)
+    # rc, out, err = run_cmd(["ls", "-rtlh", "/tmp"])
+    rc, out, err = run_cmd("bash", "-c", "sleep 2 && echo done", timeout=1)
+    print("rc:", rc, "out:", out, "err:", err)
+    sys.exit(1)
 
     # foreach cli command decorate them
     # store in cmd list given to some seq execution
