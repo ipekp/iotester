@@ -23,7 +23,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "-j",
         "--jobfile",
-        required=False,
+        required=True,
         help="file containing fio commands",
     )
     parser.add_argument(
@@ -47,16 +47,14 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def prepare_tests(argv):
-
+def getjobs(path):
     # get the jobfile
     try:
-        with open(argv.jobfile) as f:
+        with open(path) as f:
             raw_data = f.readlines()
     except Exception as e:
-        logging.error("jobfile not found: {argv.jobfile} {e.message}")
+        logging.error("jobfile not found: %s (%s)", path, e)
 
-    # extract jobs from
     cmds = []
     buf = []
     for line in raw_data:
@@ -76,12 +74,59 @@ def prepare_tests(argv):
 
     if buf:
         cmds.append(" ".join(buf))
+    return cmds
 
-    print("=========")
-    print(cmds)
-    print("=========")
 
-    sys.exit(1)
+def normalizecmds(argv, cmds):
+
+    # Namespace(setname=None, jobfile='jobs.txt', filename=None, filesize=None, runtime=None)
+    # recup param list
+    norms = []
+    for cmd in cmds:
+        norm = {}
+        parts = cmd.split()
+        for part in parts[1:]:      # 1st key is fio
+            # replace prefix - or --
+            part = part.replace("-", "")
+            if "=" in part:
+                k = part.split("=")[0]
+                v = part.split("=")[1]
+                norm[k] = v
+            else:
+                k = part
+                norm[k] = True
+
+        norms.append(norm)
+    # apply argv over it
+    # Note: shell params have priority over bash CLI
+    for cmd in norms:
+        for k, v in cmd.items():
+            # print(k, "=", v)
+            if hasattr(argv, k):
+                val = getattr(argv, k)
+                if val:
+                    cmd[k] = val
+
+    res = []
+    for norm in norms:
+        args = ["fio"]
+        for k, v in norm.items():
+            key = f"--{k}"
+            if v is True or v == "True":
+                args.append(f"{key}")
+            else:
+                args.append(f"{key}={v}")
+        res.append(" ".join(args))
+
+    return res
+
+
+def prepare_tests(argv):
+
+    cmds = getjobs(argv.jobfile)
+
+    cmds = normalizecmds(argv, cmds)
+
     # foreach cli command decorate them
     # store in cmd list given to some seq execution
 

@@ -18,3 +18,8 @@ fio --filename=/tank/testfile --filesize=1G \
 fio --filename=/tank/testfile --filesize=1G \
 	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
 	--iodepth=4 --runtime=10 --time_based --group_reporting 
+
+# test 2 max iops
+fio --filename=/tank/testfile --filesize=1G \
+	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
+	--iodepth=32 --runtime=60 --time_based --group_reporting 
