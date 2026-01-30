@@ -1,0 +1,20 @@
+
+# Comments
+# --name derived from setname
+# fio --name=zfs-min-lat --filename=/tank/testfile --filesize=20G \
+# 	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
+# 	--iodepth=4 --runtime=10 --time_based --group_reporting 
+# 1) cmd substitution
+# 2) cmd interval BS=4,8,32 
+
+
+# test read iops
+fio --filename=/tank/testfile --filesize=1G \
+	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
+	--iodepth=4 --runtime=10 --time_based --group_reporting 
+
+
+# test write
+fio --filename=/tank/testfile --filesize=1G \
+	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
+	--iodepth=4 --runtime=10 --time_based --group_reporting 
