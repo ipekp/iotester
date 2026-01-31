@@ -101,16 +101,24 @@ def normalizecmds(argv, cmds):
                 norm[k] = True
 
         norms.append(norm)
-    # apply argv over it
-    # Note: shell params have priority over bash CLI
-    for cmd in norms:
-        for k, v in cmd.items():
-            # print(k, "=", v)
-            if hasattr(argv, k):
-                val = getattr(argv, k)
-                if val:
-                    cmd[k] = val
+    # Overwrite cli params with argv parameters
+    for k, v in vars(argv).items():
+        # look for match in commands
+        for cmdidx, cmd in enumerate(norms):
+            for u, w in cmd.items():
+                if v and k == u:
+                    # job name fixing
+                    # print("Found match", k, "=", v, " with ", u, "=", w)
+                    # print("Before: ", u, "=", norms[cmdidx][u])
+                    norms[cmdidx][u] = v
+                    # print("After: ", u ,"=", norms[cmdidx][u])
 
+    # Prefix jobname with setname
+    for k, cmd in enumerate(norms):
+        name = cmd.get('name') or f"00{str(k)}"
+        norms[k]['name'] = argv.setname.lower().strip() + "_" + name.replace('"', '')
+
+    # create list suitable for subprocess
     res = []
     for norm in norms:
         args = ["fio"]
@@ -132,11 +140,16 @@ def run_cmd(cmd: list | str,
             cwd: str | None = None,
             env: dict | None = None
             ):
-
+    # some debugging
+    info = cmd
     if isinstance(cmd, str):
         args = shlex.split(cmd)
     else:
         args = list(cmd)
+        info = shlex.join(cmd)
+
+    logging.INFO("run_cmd: ", info)
+    sys.exit(1)
 
     try:
         completed = subprocess.run(
@@ -160,15 +173,14 @@ def prepare_tests(argv):
 
     cmds = getjobs(argv.jobfile)
     cmds = normalizecmds(argv, cmds)
-    # print(cmds)
+    #print(cmds)
     # rc, out, err = run_cmd(["ls", "-rtlh", "/tmp"])
-    rc, out, err = run_cmd("bash", "-c", "sleep 2 && echo done", timeout=1)
+    rc, out, err = run_cmd(cmds[0])
     print("rc:", rc, "out:", out, "err:", err)
     sys.exit(1)
 
     # foreach cli command decorate them
     # store in cmd list given to some seq execution
-
 
 def main(argv=None):
     args = parse_args(argv)

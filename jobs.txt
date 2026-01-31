@@ -4,22 +4,24 @@
 # fio --name=zfs-min-lat --filename=/tank/testfile --filesize=20G \
 # 	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
 # 	--iodepth=4 --runtime=10 --time_based --group_reporting 
-# 1) cmd substitution
+# 0) manque testname C setname
+# 1) supporter les parametres manquants
 # 2) cmd interval BS=4,8,32 
 
 
+
 # test read iops
-fio --filename=/tank/testfile --filesize=1G \
+fio --name="ONETWOTREE" --filename=/tank/testfile --filesize=99G \
 	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
 	--iodepth=4 --runtime=10 --time_based --group_reporting 
 
-
 # test write
-fio --filename=/tank/testfile --filesize=1G \
+fio --filename=/tank/testfile --filesize=2G \
 	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
 	--iodepth=4 --runtime=10 --time_based --group_reporting 
 
 # test 2 max iops
-fio --filename=/tank/testfile --filesize=1G \
+fio --filename=/tank/testfile --filesize=100M \
 	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
 	--iodepth=32 --runtime=60 --time_based --group_reporting 
+
