@@ -1,3 +1,5 @@
+# This file contains fio jobs for a set of parameters
+# Each jobname will be prefix with iotester.py -n [name]
 
 # Comments
 # --name derived from setname
@@ -13,15 +15,11 @@
 # test read iops
 fio --name="ONETWOTREE" --filename=/tank/testfile --filesize=99G \
 	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
+    --output=123 --output-format=standard \
 	--iodepth=4 --runtime=10 --time_based --group_reporting 
 
-# test write
-fio --filename=/tank/testfile --filesize=2G \
+# test BW
+fio --filename=/tank/testfile --filesize=99G \
 	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
+    --output=123 --output-format=standard \
 	--iodepth=4 --runtime=10 --time_based --group_reporting 
-
-# test 2 max iops
-fio --filename=/tank/testfile --filesize=100M \
-	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
-	--iodepth=32 --runtime=60 --time_based --group_reporting 
-

@@ -1,10 +1,8 @@
 import logging
-import sys
 import shlex
-import subprocess, os
-from params import parse_args
-from functools import partial
-import asyncio
+import subprocess
+import os
+import datetime
 
 JOB_TIMEOUT = 120
 
@@ -66,23 +64,27 @@ def run_cmd(cmd: list | str,
     return completed.returncode, completed.stdout or "", completed.stderr or ""
 
 def run_jobs(cmds: list[str], argv: object):
+    for cmd in cmds:
+        run_job(cmd, argv)
+
+def run_job(cmds: str, argv: object):
     iostat_devs = " ".join(argv.devices)
+    # argv have been normalized() at this point ...
 
     # do NOT include '&' or '2>&1' when you want to capture output
     iostat_cmd = f"iostat -c -d -x -y 1 {argv.runtime} {iostat_devs}"
     iostat_proc = start_iostat_capture(iostat_cmd)
 
-    # ensure fio timeout is a bit larger than runtime so it completes
-    fio_timeout = argv.runtime + 30
-    rc_fio, out_fio, err_fio = run_cmd(cmds[0], timeout=fio_timeout)
+    fio_timeout = argv.runtime
+    # +10 safety buffer to let fio finish
+    rc_fio, out_fio, err_fio = run_cmd(cmds, timeout=fio_timeout+10)
 
-    # wait for iostat to finish and capture output (give it small buffer)
-    rc_iostat, out_iostat, err_iostat = read_all(iostat_proc, timeout=argv.runtime + 10)
-    logging.info("Background iostat: %s (timeout %s)", iostat_cmd, argv.runtime+10)
+    rc_iostat, out_iostat, err_iostat = read_all(iostat_proc, timeout=argv.runtime)
+    logging.info("Background iostat: %s (timeout %s)", iostat_cmd, argv.runtime)
 
     # Now out_fio and out_iostat are strings (text=True)
-    logging.debug("fio out head: %s", out_fio[:1000])
-    logging.debug("iostat out head: %s", out_iostat[:1000])
+    # logging.debug("fio out head: %s", out_fio[:1000])
+    # logging.debug("iostat out head: %s", out_iostat[:1000])
 
     # parse iostat using out_iostat below (same parsing code as you already have)
     cpu_metrics = {'%user': [], '%system': [], '%iowait': [], '%idle': []}
@@ -124,34 +126,30 @@ def run_jobs(cmds: list[str], argv: object):
             except (IndexError, ValueError) as e:
                 print(f"Error parsing at line {idx}: {e}")
                 continue
-    logging.debug("\nCpu results: %s", cpu_metrics)
-    logging.debug("\nDevice results: %s", dev_metrics)
+    # logging.debug("\nCpu results: %s", cpu_metrics)
+    # logging.debug("\nDevice results: %s", dev_metrics)
 
-    # tot = 0
-    # for s in cpu_metrics['%user']:
-    #     tot += s
-    # print(round (tot/len(cpu_metrics['%user']),2) )
 
-    # extract keys
     averages = {}
-    for metric in cpu_metrics:
-        cm = "iostat_" + metric.replace('%', '')
-        tot = 0.00
-        for s in cpu_metrics[metric]:  #list
-            tot += s
-        avg = round(tot/len(metric), 2)
-        averages[cm] = avg
-    
-    for metric in dev_metrics:
-        cm = "iostat_" + metric.replace('%', '')
-        cm = cm.replace('/', '')
-        tot = 0.00
-        for s in dev_metrics[metric]:  #list
-            tot += s
-        avg = round(tot/len(metric), 2)
-        averages[cm] = avg
+    for metric, vals in cpu_metrics.items():
+        key = "iostat_" + metric.replace('%', '')
+        avg = round(sum(vals) / len(vals), 2) if vals else 0.0
+        averages[key] = avg
 
+    for metric, vals in dev_metrics.items():
+        key = "iostat_" + metric.replace('%', '')
+        key = key.replace('/', '')
+        avg = round(sum(vals) / len(vals), 2) if vals else 0.0
+        averages[key] = avg
 
-    print("fio out:", out_fio)
-    print("iostat out (truncated):", out_iostat[:2000])
+    # print exhaustive out in logs
+    logfile = f"logs/{argv.setname}.log"
+    with open(logfile, 'a') as f:
+        sep = "=" * 10
+        f.write(f"{sep} fio out:\n {out_fio}\n")
+        f.write(f"{sep} iostat out:\n {out_iostat}\n")
+        f.write(f"{sep} Cpu metrics:\n {cpu_metrics}\n")
+        f.write(f"{sep} Dev metrics:\n {dev_metrics}\n")
+        f.write(f"{sep} Avg iostats:\n {averages}\n")
+
     return rc_fio, out_fio, err_fio, rc_iostat, out_iostat, err_iostat

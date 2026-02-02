@@ -43,8 +43,8 @@ def _parse_runtime(val: str):
         v = int(val)
     except ValueError:
         raise argparse.ArgumentTypeError("runtime must be an integer number of seconds")
-    if v <= 0:
-        raise argparse.ArgumentTypeError("runtime must be > 0")
+    if v < 10:
+        raise argparse.ArgumentTypeError("runtime must be >= 10")
     return v
 
 # basic functions
