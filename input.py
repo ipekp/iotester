@@ -1,6 +1,5 @@
 import datetime
 import logging
-from output import format_output
 
 def getjobs(argv):
     # get the jobfile

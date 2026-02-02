@@ -20,6 +20,6 @@ fio --name="ONETWOTREE" --filename=/tank/testfile --filesize=99G \
 
 # test BW
 fio --filename=/tank/testfile --filesize=99G \
-	--rw=randread --bs=4k --direct=1 --ioengine=libaio \
+	--rw=write --bs=4k --direct=1 --ioengine=libaio \
     --output=123 --output-format=standard \
 	--iodepth=4 --runtime=10 --time_based --group_reporting 

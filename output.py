@@ -5,27 +5,25 @@ import json
 def format_job(out_fio, out_iostat, averages):
     # header
     output = {}
-    header = ['jobname','bs','qd','iops','bw_mbs']
     # body
     with open("F", 'r') as f:
         out_fio = f.read()
     # grab the json from fio
-    fio_json = re.search(r"({.*}).*{'iostat", out_fio, flags=re.DOTALL)
-    fio_json = json.loads(fio_json.group(1))
+    m = re.search(r"({.*}).*set", out_fio, re.DOTALL)
+    # m = re.search(r"(\{.*\})", out_fio, re.DOTALL)
+    t = m.group(1).strip()
+    fio_json = json.loads(m.group(1).strip())
     fio_json = fio_json['jobs'][0]
     # get our vals
 
     # determine if read or write or both
-
-    if int(fio_json['read']['bw']) and not int(fio_json['write']['bw']):
+    if int(fio_json['read']['bw']) != 0 and int(fio_json['write']['bw']) == 0:
         tt = ['read']
-    elif not int(fio_json['read']['bw']) and int(fio_json['write']['bw']):
+    elif int(fio_json['read']['bw']) == 0 and int(fio_json['write']['bw']) != 0:
         tt = ['write']
     else:
         tt = ['read', 'write']
         # R and W test
-    print(len(tt))
-
     # globals
     output['jobname'] = fio_json['jobname']
     output['bs'] = fio_json['job options']['bs']
@@ -34,12 +32,18 @@ def format_job(out_fio, out_iostat, averages):
     output['fio_usr_cpu'] = round(fio_json['usr_cpu'], 2)
 
     if len(tt) == 1:
+        # find units
+        su = next((k for k in ('ns','ms') if f"slat_{k}" in fio_json[tt[0]]), 'us')
+        cu = next((k for k in ('ns','ms') if f"clat_{k}" in fio_json[tt[0]]), 'us')
+        lu = next((k for k in ('ns','ms') if f"lat_{k}" in fio_json[tt[0]]), 'us')
         # test type dependent
         output['iops'] = round(float(fio_json[tt[0]]['iops']), 2)
         output['BW_MBs'] = round(float(fio_json[tt[0]]['iops']), 2)
-        output['clat_avg_us'] = round(float(fio_json[tt[0]]['clat_ns']['mean'])/1000, 2)
-        output['clat_p99_us'] = round(float(fio_json[tt[0]]['clat_ns']['percentile']['99.000000'])/1000, 2)
-        #output['slat_avg_us'] = round(float(fio_json[tt[0]]['slat_avg_us'])/1000, 2)
+        output[f"clat_avg_us"] = tous(float(fio_json[tt[0]][f"clat_{cu}"]['mean']), cu)
+        output[f"clat_p99_us"] = tous(float(fio_json[tt[0]][f"clat_ns"]['percentile']['99.000000']), cu)
+        output[f"clat_ratio"] = round(output[f"clat_p99_us"]/output[f"clat_avg_us"],2)
+        output[f"slat_avg_us"] = tous(float(fio_json[tt[0]][f"slat_{su}"]['mean']), su)
+        output[f"lat_avg_us"] = tous(float(fio_json[tt[0]][f"lat_{lu}"]['mean']), lu)
 
     else:
         print("HERE ======")
@@ -55,17 +59,16 @@ def format_job(out_fio, out_iostat, averages):
         output['BW_MBs'] = round(float(fio_json[t]['BW_MBs'])/2, 2)
 
 
-    print(output)
-
-    # add average to it
-    # print(json.dumps(fio_json, indent = 2))
-    # print(fio_json)
-    # # add averages
-    # print(out_fio)
-    # print(out_iostat)
+    if averages:
+        output['iostat_user'] = averages['iostat_user']
+        output['iostat_system'] = averages['iostat_system']
+        output['iostat_iowait'] = averages['iostat_iowait']
+        output['iostat_util'] = averages['iostat_util']
+        output['iostat_aqu-sz'] = averages['iostat_aqu-sz']
+        output['iostat_ws'] = averages['iostat_ws']
+        output['iostat_rs'] = averages['iostat_rs']
     # print(averages)
-    sys.exit(1)
-    # tailer
+    # sys.exit(1)
     return output
 
 

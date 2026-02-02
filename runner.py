@@ -64,10 +64,10 @@ def run_cmd(cmd: list | str,
     return completed.returncode, completed.stdout or "", completed.stderr or ""
 
 def run_jobs(cmds: list[str], argv: object):
-    out = ""
+    out = []
     for cmd in cmds:
-        out += run_job(cmd, argv)
-    return format_job(out)
+        out.append(run_job(cmd, argv))
+    return out
 
 def run_job(cmds: str, argv: object):
     iostat_devs = " ".join(argv.devices)
