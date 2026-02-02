@@ -2,7 +2,7 @@ import logging
 import shlex
 import subprocess
 import os
-import datetime
+from output import format_job
 
 JOB_TIMEOUT = 120
 
@@ -64,8 +64,10 @@ def run_cmd(cmd: list | str,
     return completed.returncode, completed.stdout or "", completed.stderr or ""
 
 def run_jobs(cmds: list[str], argv: object):
+    out = ""
     for cmd in cmds:
-        run_job(cmd, argv)
+        out += run_job(cmd, argv)
+    return format_job(out)
 
 def run_job(cmds: str, argv: object):
     iostat_devs = " ".join(argv.devices)
@@ -152,4 +154,8 @@ def run_job(cmds: str, argv: object):
         f.write(f"{sep} Dev metrics:\n {dev_metrics}\n")
         f.write(f"{sep} Avg iostats:\n {averages}\n")
 
-    return rc_fio, out_fio, err_fio, rc_iostat, out_iostat, err_iostat
+    # prepare output
+    return format_job(out_fio, out_iostat, averages)
+    # return rc_fio, out_fio, err_fio, rc_iostat, out_iostat, err_iostat
+
+
