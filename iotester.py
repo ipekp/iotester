@@ -100,6 +100,8 @@ def main(argv=None):
     args = parse_args(argv)
     cmds = getjobs(args)
     cmds = normalizecmds(cmds, args)
+    print(cmds)
+    sys.exit(1)
     run_jobs(cmds, args)
     # format output
 

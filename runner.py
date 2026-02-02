@@ -1,10 +1,33 @@
 import logging
 import sys
 import shlex
-import subprocess
+import subprocess, os
 from params import parse_args
+from functools import partial
+import asyncio
 
 JOB_TIMEOUT = 120
+
+def start_iostat_capture(cmd: str):
+# cmd must not include '&' or '2>&1'
+    proc = subprocess.Popen(
+        cmd,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        preexec_fn=os.setpgrp
+    )
+    return proc
+
+def read_all(proc: subprocess.Popen, timeout: int | None = None):
+    try:
+        out, err = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExprired:
+        proc.kill()
+        out, err = proc.communicate()
+    return proc.returncode, out or "", err or ""
+
 
 def run_cmd(cmd: list | str,
             check: bool = False,
@@ -42,23 +65,32 @@ def run_cmd(cmd: list | str,
         return -1, "", str(e)
     return completed.returncode, completed.stdout or "", completed.stderr or ""
 
-# does all the running
 def run_jobs(cmds: list[str], argv: object):
-
-    # background iostat monitoring
     iostat_devs = " ".join(argv.devices)
 
-    iostat_cmd = f"iostat -c -d -x -y 1 {argv.runtime} {iostat_devs} 2>&1 &"
-    rc, out, err = run_cmd(iostat_cmd, timeout=argv.runtime+5)
+    # do NOT include '&' or '2>&1' when you want to capture output
+    iostat_cmd = f"iostat -c -d -x -y 1 {argv.runtime} {iostat_devs}"
+    iostat_proc = start_iostat_capture(iostat_cmd)
 
-    # parse iostat
+    # ensure fio timeout is a bit larger than runtime so it completes
+    fio_timeout = argv.runtime + 30
+    rc_fio, out_fio, err_fio = run_cmd(cmds[0], timeout=fio_timeout)
+
+    # wait for iostat to finish and capture output (give it small buffer)
+    rc_iostat, out_iostat, err_iostat = read_all(iostat_proc, timeout=argv.runtime + 10)
+    logging.info("Background iostat: %s (timeout %s)", iostat_cmd, argv.runtime+10)
+
+    # Now out_fio and out_iostat are strings (text=True)
+    logging.debug("fio out head: %s", out_fio[:1000])
+    logging.debug("iostat out head: %s", out_iostat[:1000])
+
+    # parse iostat using out_iostat below (same parsing code as you already have)
     cpu_metrics = {'%user': [], '%system': [], '%iowait': [], '%idle': []}
 
     dev_metrics = {'r/s': [], 'rkB/s': [], 'r_await': [], 'w/s': [], 'wkB/s':
                    [], 'w_await': [], 'aqu-sz': [], '%util': []}
-
-    lines = out.splitlines()
-
+    lines = out_iostat.splitlines()
+    # ... (parsing unchanged) ...
     for idx, line in enumerate(lines):
         if line.startswith('avg-cpu'):
             # parse header
@@ -103,7 +135,7 @@ def run_jobs(cmds: list[str], argv: object):
     # extract keys
     averages = {}
     for metric in cpu_metrics:
-        cm = "fio_" + metric.replace('%', '')
+        cm = "iostat_" + metric.replace('%', '')
         tot = 0.00
         for s in cpu_metrics[metric]:  #list
             tot += s
@@ -112,12 +144,14 @@ def run_jobs(cmds: list[str], argv: object):
     
     for metric in dev_metrics:
         cm = "iostat_" + metric.replace('%', '')
+        cm = cm.replace('/', '')
         tot = 0.00
         for s in dev_metrics[metric]:  #list
             tot += s
         avg = round(tot/len(metric), 2)
         averages[cm] = avg
 
-    print(averages)
-    # rc, out, err = run_cmd(cmds[0])
-    # print(out)
+
+    print("fio out:", out_fio)
+    print("iostat out (truncated):", out_iostat[:2000])
+    return rc_fio, out_fio, err_fio, rc_iostat, out_iostat, err_iostat
