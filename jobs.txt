@@ -31,8 +31,8 @@ fio --name=randread_bs16_qd1 --rw=randread --bs=16k --direct=1 \
 fio --name=randwrite_bs16_qd1 --rw=randwrite --bs=16k --direct=1 \
         --ioengine=libaio --iodepth=1 --time_based \
         --group_reporting
-# # Both direction:
-# fio --name=randrw_bs16_qd1 --rw=randrw --bs=16k --direct=1 \
-#         --ioengine=libaio --iodepth=1 --time_based \
-#         --group_reporting --rwmixread=50
+# Both direction:
+fio --name=randrw_bs16_qd1 --rw=randrw --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting --rwmixread=50
 

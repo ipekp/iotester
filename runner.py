@@ -3,6 +3,8 @@ import shlex
 import subprocess
 import os
 from output import format_job
+import sys
+import time
 
 JOB_TIMEOUT = 120
 
@@ -43,8 +45,6 @@ def run_cmd(cmd: list | str,
         args = list(cmd)
         info = shlex.join(cmd)
 
-    logging.info("Cmd: %s (timeout %s)", info, timeout)
-
     try:
         completed = subprocess.run(
                 args,
@@ -61,6 +61,8 @@ def run_cmd(cmd: list | str,
         return -1, e.stdout or "", e.stderr or f"Timeout after {timeout}s"
     except Exception as e:
         return -1, "", str(e)
+
+    logging.info("Cmd: %s (rc %s) (timeout %s)", info, completed.returncode, timeout)
     return completed.returncode, completed.stdout or "", completed.stderr or ""
 
 def run_jobs(cmds: list[str], argv: object):
@@ -72,6 +74,12 @@ def run_jobs(cmds: list[str], argv: object):
 def run_job(cmds: str, argv: object):
     iostat_devs = " ".join(argv.devices)
     # argv have been normalized() at this point ...
+    # before each task flush cache
+    run_cmd("sync", timeout=10)
+    run_cmd('echo 3 > sudo tee /proc/sys/vm/drop_caches', timeout=10)
+    logging.info("Waiting for 10s")
+    time.sleep(10)
+    sys.exit(1)
 
     # do NOT include '&' or '2>&1' when you want to capture output
     iostat_cmd = f"iostat -c -d -x -y 1 {argv.runtime} {iostat_devs}"

@@ -35,32 +35,20 @@ def format_job(out_fio, out_iostat, averages, cmd):
     output['fio_sys_cpu'] = round(fio_json['sys_cpu'], 2)
     output['fio_usr_cpu'] = round(fio_json['usr_cpu'], 2)
 
-    if len(tt) == 1:
-        # find units
-        su = next((k for k in ('ns','ms') if f"slat_{k}" in fio_json[tt[0]]), 'us')
-        cu = next((k for k in ('ns','ms') if f"clat_{k}" in fio_json[tt[0]]), 'us')
-        lu = next((k for k in ('ns','ms') if f"lat_{k}" in fio_json[tt[0]]), 'us')
-        # test type dependent
-        output['iops'] = round(float(fio_json[tt[0]]['iops']), 2)
-        output['BW_MBs'] = round(float(fio_json[tt[0]]['bw'])/1024, 2)
-        output[f"clat_avg_us"] = tous(float(fio_json[tt[0]][f"clat_{cu}"]['mean']), cu)
-        output[f"clat_p99_us"] = tous(float(fio_json[tt[0]][f"clat_ns"]['percentile']['99.000000']), cu)
-        output[f"clat_ratio"] = round(output[f"clat_p99_us"]/output[f"clat_avg_us"],2)
-        output[f"slat_avg_us"] = tous(float(fio_json[tt[0]][f"slat_{su}"]['mean']), su)
-        output[f"lat_avg_us"] = tous(float(fio_json[tt[0]][f"lat_{lu}"]['mean']), lu)
-
-    else:
-        # TODO to implement
-        output['iops'] = 0.00
-        output['BW_MBs'] = 0.00
-        for t in tt:
-
-            output['iops'] += round(float(fio_json[t]['iops']), 2)
-            output['BW_MBs'] += round(float(fio_json[t]['BW_MBs']), 2)
-
-        output['iops'] = round(float(fio_json[t]['iops'])/2, 2)
-        output['BW_MBs'] = round(float(fio_json[t]['BW_MBs'])/2, 2)
-
+    # find units
+    # Note: separated READ from WRITE but not R and W
+    # for bidir tests, Im only testing read latency
+    su = next((k for k in ('ns','ms') if f"slat_{k}" in fio_json[tt[0]]), 'us')
+    cu = next((k for k in ('ns','ms') if f"clat_{k}" in fio_json[tt[0]]), 'us')
+    lu = next((k for k in ('ns','ms') if f"lat_{k}" in fio_json[tt[0]]), 'us')
+    # test type dependent
+    output['iops'] = round(float(fio_json[tt[0]]['iops']), 2)
+    output['BW_MBs'] = round(float(fio_json[tt[0]]['bw'])/1024, 2)
+    output[f"clat_avg_us"] = tous(float(fio_json[tt[0]][f"clat_{cu}"]['mean']), cu)
+    output[f"clat_p99_us"] = tous(float(fio_json[tt[0]][f"clat_ns"]['percentile']['99.000000']), cu)
+    output[f"clat_ratio"] = round(output[f"clat_p99_us"]/output[f"clat_avg_us"],2)
+    output[f"slat_avg_us"] = tous(float(fio_json[tt[0]][f"slat_{su}"]['mean']), su)
+    output[f"lat_avg_us"] = tous(float(fio_json[tt[0]][f"lat_{lu}"]['mean']), lu)
 
     if averages:
         output['iostat_user'] = averages['iostat_user']
