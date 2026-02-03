@@ -155,7 +155,7 @@ def run_job(cmds: str, argv: object):
         f.write(f"{sep} Avg iostats:\n {averages}\n")
 
     # prepare output
-    return format_job(out_fio, out_iostat, averages)
+    return format_job(out_fio, out_iostat, averages, cmds)
     # return rc_fio, out_fio, err_fio, rc_iostat, out_iostat, err_iostat
 
 

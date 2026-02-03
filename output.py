@@ -1,18 +1,24 @@
 import sys
 import re
 import json
+import csv
 
-def format_job(out_fio, out_iostat, averages):
+def format_job(out_fio, out_iostat, averages, cmd):
     # header
     output = {}
     # body
     # grab the json from fio
     m = re.search(r"({.*}).*set", out_fio, re.DOTALL)
     # m = re.search(r"(\{.*\})", out_fio, re.DOTALL)
-    t = m.group(1).strip()
     fio_json = json.loads(m.group(1).strip())
     fio_json = fio_json['jobs'][0]
     # get our vals
+    m = re.search(r".*set1(.*)", out_fio, re.DOTALL)
+    if isinstance(cmd, list):
+        cmd = " ".join(cmd)
+
+    fio_cmd = f"{cmd}\n"
+    fio_log = m.group(1).strip()
 
     # determine if read or write or both
     if int(fio_json['read']['bw']) != 0 and int(fio_json['write']['bw']) == 0:
@@ -64,8 +70,10 @@ def format_job(out_fio, out_iostat, averages):
         output['iostat_aqu-sz'] = averages['iostat_aqu-sz']
         output['iostat_ws'] = averages['iostat_ws']
         output['iostat_rs'] = averages['iostat_rs']
-    # print(averages)
-    # sys.exit(1)
+
+    # suffix with logs
+    output['fio_cmd'] = fio_cmd.strip()
+    output['fio_log'] = fio_log.strip()
     return output
 
 
@@ -76,7 +84,6 @@ def tous(time: float, unit: str = 'us'):
         return round(time, 2)
     elif unit == 'ns':
         return round(time/1000, 2)
-
 
 # TODO maybe used
 def to_sheet(output: list):
@@ -93,11 +100,14 @@ def tocsv(output: list):
     headers = []
     for k, v in output[0].items():
         headers.append(k.strip())
-    print(",".join(headers))
+    print("========== CUT =========")
+    writer = csv.writer(sys.stdout, lineterminator="\n")
+    writer.writerow(headers)
 
     for result in output:
         row = []
         for k, v in result.items():
             row.append(str(v))
-        print(",".join(row))
-    sys.exit(1)
+        # print(",".join(row))
+        writer.writerow(row)
+    print("========== CUT =========")

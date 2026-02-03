@@ -22,8 +22,7 @@ def main(argv=None):
     cmds = getjobs(args)
     cmds = normalizecmds(cmds, args)
     output = run_jobs(cmds, args)
-    output = tocsv(output)
-    print(output)
+    tocsv(output)
 
 
 if __name__ == "__main__":
