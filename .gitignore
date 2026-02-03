@@ -2,6 +2,7 @@
 tmp/*
 results/*
 __pycache__/
-logs/
+logs/*
+!logs/.keep
 F
 f.sh
