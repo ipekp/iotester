@@ -79,7 +79,6 @@ def run_job(cmds: str, argv: object):
     run_cmd('echo 3 > sudo tee /proc/sys/vm/drop_caches', timeout=10)
     logging.info("Waiting for 10s")
     time.sleep(10)
-    sys.exit(1)
 
     # do NOT include '&' or '2>&1' when you want to capture output
     iostat_cmd = f"iostat -c -d -x -y 1 {argv.runtime} {iostat_devs}"

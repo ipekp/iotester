@@ -11,7 +11,6 @@ def is_block_device(path: str) -> bool:
         return False
     return stat.S_ISBLK(st.st_mode)
 
-
 def _parse_devices(val: str):
     if not val:
         raise argparse.ArgumentTypeError("empty device list")
@@ -89,5 +88,11 @@ def parse_args(argv=None):
         required=True,
         type=_parse_devices,
         help="block device(s) to monitor -d=sda,sdb"
+    )
+    parser.add_argument(
+        "-r",
+        "--raw",
+        action="store_true",
+        help="test directly on /dev/sdX"
     )
     return parser.parse_args(argv)

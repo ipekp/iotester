@@ -83,8 +83,11 @@ def normalizecmds(cmds, argv):
         norms[k]['output-format'] = "normal,json"
         # add runtime
         norms[k]['runtime'] = int(argv.runtime)
-        norms[k]['filename'] = argv.filename.strip()
-        norms[k]['filesize'] = argv.filesize.strip()
+        if argv.raw:
+            norms[k]['filename'] = argv.devices[0].strip()
+        else:
+            norms[k]['filename'] = argv.filename.strip()
+            norms[k]['filesize'] = argv.filesize.strip()
 
     # create list suitable for subprocess
     res = []
