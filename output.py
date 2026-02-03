@@ -6,8 +6,6 @@ def format_job(out_fio, out_iostat, averages):
     # header
     output = {}
     # body
-    with open("F", 'r') as f:
-        out_fio = f.read()
     # grab the json from fio
     m = re.search(r"({.*}).*set", out_fio, re.DOTALL)
     # m = re.search(r"(\{.*\})", out_fio, re.DOTALL)
@@ -46,8 +44,7 @@ def format_job(out_fio, out_iostat, averages):
         output[f"lat_avg_us"] = tous(float(fio_json[tt[0]][f"lat_{lu}"]['mean']), lu)
 
     else:
-        print("HERE ======")
-
+        # TODO to implement
         output['iops'] = 0.00
         output['BW_MBs'] = 0.00
         for t in tt:

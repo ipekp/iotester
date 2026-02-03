@@ -1,5 +1,6 @@
 import datetime
 import logging
+import sys
 
 def getjobs(argv):
     # get the jobfile
@@ -60,7 +61,7 @@ def normalizecmds(cmds, argv):
             for u, w in cmd.items():
                 if v and k == u:
                     # job name fixing
-                    # print("Found match", k, "=", v, " with ", u, "=", w)
+                    print("Found match", k, "=", v, " with ", u, "=", w)
                     # print("Before: ", u, "=", norms[cmdidx][u])
                     norms[cmdidx][u] = v
                     # print("After: ", u ,"=", norms[cmdidx][u])
@@ -80,6 +81,10 @@ def normalizecmds(cmds, argv):
 
         # norms[k]['output'] = f"{stamp}_{argv.setname}_00{str(k)}"
         norms[k]['output-format'] = "normal,json"
+        # add runtime
+        norms[k]['runtime'] = int(argv.runtime)
+        norms[k]['filename'] = argv.filename.strip()
+        norms[k]['filesize'] = argv.filesize.strip()
 
     # create list suitable for subprocess
     res = []
