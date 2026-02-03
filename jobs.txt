@@ -3,36 +3,36 @@
 
 # Perimeter tests (not relevant with ZFS record|block size (cf amplification/fragmentation problem))
 ## min LAT 
-fio --name=min_lat --rw=randread --bs=4k --direct=1 \
+fio --name=min_lat --rw=write --bs=4k --direct=1 \
 	--ioengine=libaio --iodepth=1 --time_based \
+	--group_reporting --sync=1
+
+## max IOPS
+fio --name=max_iops --rw=randread --bs=4k --direct=1 \
+	--ioengine=libaio --iodepth=128 --time_based \
 	--group_reporting
 
-# ## max IOPS
-# fio --name=max_iops --rw=randread --bs=4k --direct=1 \
-# 	--ioengine=libaio --iodepth=128 --time_based \
-# 	--group_reporting
-# 
-# ## max BW
-# fio --name=max_bw --rw=write --bs=1M --direct=1 \
-# 	--ioengine=libaio --iodepth=32 --time_based \
-# 	--group_reporting 
-# 
-# 
-# # stress tests at various QD. purpose is to find phydisk saturation point for given BS (workload)
-# # but for zfs it'll help figure out acceptable workload perfs for a given record|block size
-# # I test this against single disk to figure out what a set of params={raid type, caching etc ... } 
-# # could produce when scaled
-# 
-# # Read direction:
-# fio --name=randread_bs16_qd1 --rw=randread --bs=16k --direct=1 \
-#         --ioengine=libaio --iodepth=1 --time_based \
-#         --group_reporting
-# # Write direction:
-# fio --name=randwrite_bs16_qd1 --rw=randwrite --bs=16k --direct=1 \
-#         --ioengine=libaio --iodepth=1 --time_based \
-#         --group_reporting
-# # Both direction:
-# fio --name=randrw_bs16_qd1 --rw=randrw --bs=16k --direct=1 \
-#         --ioengine=libaio --iodepth=1 --time_based \
-#         --group_reporting --rwmixread=50
-# 
+## max BW
+fio --name=max_bw --rw=write --bs=1M --direct=1 \
+	--ioengine=libaio --iodepth=32 --time_based \
+	--group_reporting 
+
+
+# stress tests at various QD. purpose is to find phydisk saturation point for given BS (workload)
+# but for zfs it'll help figure out acceptable workload perfs for a given record|block size
+# I test this against single disk to figure out what a set of params={raid type, caching etc ... } 
+# could produce when scaled
+
+# Read direction:
+fio --name=randread_bs16_qd1 --rw=randread --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs16_qd1 --rw=randwrite --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs16_qd1 --rw=randrw --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting --rwmixread=50
+

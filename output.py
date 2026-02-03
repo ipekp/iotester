@@ -13,12 +13,13 @@ def format_job(out_fio, out_iostat, averages, cmd):
     fio_json = json.loads(m.group(1).strip())
     fio_json = fio_json['jobs'][0]
     # get our vals
-    m = re.search(r".*set1(.*)", out_fio, re.DOTALL)
+    m = re.search(r".*set(.*)", out_fio, re.DOTALL)
+    fio_log = m.group(1).strip()
+
     if isinstance(cmd, list):
         cmd = " ".join(cmd)
 
     fio_cmd = f"{cmd}\n"
-    fio_log = m.group(1).strip()
 
     # determine if read or write or both
     if int(fio_json['read']['bw']) != 0 and int(fio_json['write']['bw']) == 0:
