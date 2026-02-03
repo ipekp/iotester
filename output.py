@@ -79,3 +79,28 @@ def tous(time: float, unit: str = 'us'):
         return round(time, 2)
     elif unit == 'ns':
         return round(time/1000, 2)
+
+
+# TODO maybe used
+def to_sheet(output: list):
+    # print(isinstance(output,list))
+    for result in output:
+        print(result)
+        for k, v in result.items():
+            print(k, ",", v)
+    sys.exit(1)
+    # return output
+
+def tocsv(output: list):
+    # dynamic headers
+    headers = []
+    for k, v in output[0].items():
+        headers.append(k.strip())
+    print(",".join(headers))
+
+    for result in output:
+        row = []
+        for k, v in result.items():
+            row.append(str(v))
+        print(",".join(row))
+    sys.exit(1)
