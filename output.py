@@ -42,7 +42,7 @@ def format_job(out_fio, out_iostat, averages, cmd):
         lu = next((k for k in ('ns','ms') if f"lat_{k}" in fio_json[tt[0]]), 'us')
         # test type dependent
         output['iops'] = round(float(fio_json[tt[0]]['iops']), 2)
-        output['BW_MBs'] = round(float(fio_json[tt[0]]['iops']), 2)
+        output['BW_MBs'] = round(float(fio_json[tt[0]]['bw'])/1024, 2)
         output[f"clat_avg_us"] = tous(float(fio_json[tt[0]][f"clat_{cu}"]['mean']), cu)
         output[f"clat_p99_us"] = tous(float(fio_json[tt[0]][f"clat_ns"]['percentile']['99.000000']), cu)
         output[f"clat_ratio"] = round(output[f"clat_p99_us"]/output[f"clat_avg_us"],2)
@@ -79,11 +79,11 @@ def format_job(out_fio, out_iostat, averages, cmd):
 
 def tous(time: float, unit: str = 'us'):
     if unit == 'ms':
-        return round(time/(1000*1000), 2)
+        return round(time/(1000*1000), 3)
     elif unit == 'us':
-        return round(time, 2)
+        return round(time, 3)
     elif unit == 'ns':
-        return round(time/1000, 2)
+        return round(time/1000, 3)
 
 # TODO maybe used
 def to_sheet(output: list):
