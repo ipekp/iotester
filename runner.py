@@ -35,7 +35,8 @@ def run_cmd(cmd: list | str,
             text: bool = True,
             timeout: int | None = JOB_TIMEOUT,
             cwd: str | None = None,
-            env: dict | None = None
+            env: dict | None = None,
+            log: bool = True
             ):
     # some debugging
     info = cmd
@@ -62,7 +63,9 @@ def run_cmd(cmd: list | str,
     except Exception as e:
         return -1, "", str(e)
 
-    logging.info("Cmd: %s (rc %s) (timeout %s)", info, completed.returncode, timeout)
+    if log:
+        logging.info("Cmd: %s (rc %s) (timeout %s)", info, completed.returncode, timeout)
+
     return completed.returncode, completed.stdout or "", completed.stderr or ""
 
 def run_jobs(cmds: list[str], argv: object):
@@ -75,9 +78,9 @@ def run_job(cmds: str, argv: object):
     iostat_devs = " ".join(argv.devices)
     # argv have been normalized() at this point ...
     # before each task flush cache
-    run_cmd("sync", timeout=10)
-    run_cmd('echo 3 > sudo tee /proc/sys/vm/drop_caches', timeout=10)
-    logging.info("Waiting for 10s")
+    run_cmd("sync", timeout=10, log=False)
+    run_cmd('echo 3 > sudo tee /proc/sys/vm/drop_caches', timeout=10, log=False)
+    logging.info("Flushing caches (10s pause) ...")
     time.sleep(10)
 
     # do NOT include '&' or '2>&1' when you want to capture output

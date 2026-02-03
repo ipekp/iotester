@@ -23,6 +23,85 @@ fio --name=max_bw --rw=write --bs=1M --direct=1 \
 # I test this against single disk to figure out what a set of params={raid type, caching etc ... } 
 # could produce when scaled
 
+# BS:4 QD:
+# Read direction:
+fio --name=randread_bs4_qd1 --rw=randread --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs4_qd1 --rw=randwrite --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs4_qd1 --rw=randrw --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting --rwmixread=50
+# BS:4 QD:
+# Read direction:
+fio --name=randread_bs4_qd4 --rw=randread --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs4_qd4 --rw=randwrite --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs4_qd4 --rw=randrw --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting --rwmixread=50
+# BS:4 QD:
+# Read direction:
+fio --name=randread_bs4_qd16 --rw=randread --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs4_qd16 --rw=randwrite --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs4_qd16 --rw=randrw --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting --rwmixread=50
+# BS:4 QD:
+# Read direction:
+fio --name=randread_bs4_qd64 --rw=randread --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs4_qd64 --rw=randwrite --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs4_qd64 --rw=randrw --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting --rwmixread=50
+# BS:4 QD:
+# Read direction:
+fio --name=randread_bs4_qd128 --rw=randread --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs4_qd128 --rw=randwrite --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs4_qd128 --rw=randrw --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting --rwmixread=50
+# BS:4 QD:
+# Read direction:
+fio --name=randread_bs4_qd256 --rw=randread --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs4_qd256 --rw=randwrite --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs4_qd256 --rw=randrw --bs=4k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting --rwmixread=50
+# BS:16 QD:
 # Read direction:
 fio --name=randread_bs16_qd1 --rw=randread --bs=16k --direct=1 \
         --ioengine=libaio --iodepth=1 --time_based \
@@ -35,4 +114,302 @@ fio --name=randwrite_bs16_qd1 --rw=randwrite --bs=16k --direct=1 \
 fio --name=randrw_bs16_qd1 --rw=randrw --bs=16k --direct=1 \
         --ioengine=libaio --iodepth=1 --time_based \
         --group_reporting --rwmixread=50
-
+# BS:16 QD:
+# Read direction:
+fio --name=randread_bs16_qd4 --rw=randread --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs16_qd4 --rw=randwrite --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs16_qd4 --rw=randrw --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting --rwmixread=50
+# BS:16 QD:
+# Read direction:
+fio --name=randread_bs16_qd16 --rw=randread --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs16_qd16 --rw=randwrite --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs16_qd16 --rw=randrw --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting --rwmixread=50
+# BS:16 QD:
+# Read direction:
+fio --name=randread_bs16_qd64 --rw=randread --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs16_qd64 --rw=randwrite --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs16_qd64 --rw=randrw --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting --rwmixread=50
+# BS:16 QD:
+# Read direction:
+fio --name=randread_bs16_qd128 --rw=randread --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs16_qd128 --rw=randwrite --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs16_qd128 --rw=randrw --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting --rwmixread=50
+# BS:16 QD:
+# Read direction:
+fio --name=randread_bs16_qd256 --rw=randread --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs16_qd256 --rw=randwrite --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs16_qd256 --rw=randrw --bs=16k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting --rwmixread=50
+# BS:64 QD:
+# Read direction:
+fio --name=randread_bs64_qd1 --rw=randread --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs64_qd1 --rw=randwrite --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs64_qd1 --rw=randrw --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting --rwmixread=50
+# BS:64 QD:
+# Read direction:
+fio --name=randread_bs64_qd4 --rw=randread --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs64_qd4 --rw=randwrite --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs64_qd4 --rw=randrw --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting --rwmixread=50
+# BS:64 QD:
+# Read direction:
+fio --name=randread_bs64_qd16 --rw=randread --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs64_qd16 --rw=randwrite --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs64_qd16 --rw=randrw --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting --rwmixread=50
+# BS:64 QD:
+# Read direction:
+fio --name=randread_bs64_qd64 --rw=randread --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs64_qd64 --rw=randwrite --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs64_qd64 --rw=randrw --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting --rwmixread=50
+# BS:64 QD:
+# Read direction:
+fio --name=randread_bs64_qd128 --rw=randread --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs64_qd128 --rw=randwrite --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs64_qd128 --rw=randrw --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting --rwmixread=50
+# BS:64 QD:
+# Read direction:
+fio --name=randread_bs64_qd256 --rw=randread --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs64_qd256 --rw=randwrite --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs64_qd256 --rw=randrw --bs=64k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting --rwmixread=50
+# BS:128 QD:
+# Read direction:
+fio --name=randread_bs128_qd1 --rw=randread --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs128_qd1 --rw=randwrite --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs128_qd1 --rw=randrw --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting --rwmixread=50
+# BS:128 QD:
+# Read direction:
+fio --name=randread_bs128_qd4 --rw=randread --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs128_qd4 --rw=randwrite --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs128_qd4 --rw=randrw --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting --rwmixread=50
+# BS:128 QD:
+# Read direction:
+fio --name=randread_bs128_qd16 --rw=randread --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs128_qd16 --rw=randwrite --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs128_qd16 --rw=randrw --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting --rwmixread=50
+# BS:128 QD:
+# Read direction:
+fio --name=randread_bs128_qd64 --rw=randread --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs128_qd64 --rw=randwrite --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs128_qd64 --rw=randrw --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting --rwmixread=50
+# BS:128 QD:
+# Read direction:
+fio --name=randread_bs128_qd128 --rw=randread --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs128_qd128 --rw=randwrite --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs128_qd128 --rw=randrw --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting --rwmixread=50
+# BS:128 QD:
+# Read direction:
+fio --name=randread_bs128_qd256 --rw=randread --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs128_qd256 --rw=randwrite --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs128_qd256 --rw=randrw --bs=128k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting --rwmixread=50
+# BS:1024 QD:
+# Read direction:
+fio --name=randread_bs1024_qd1 --rw=randread --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs1024_qd1 --rw=randwrite --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs1024_qd1 --rw=randrw --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=1 --time_based \
+        --group_reporting --rwmixread=50
+# BS:1024 QD:
+# Read direction:
+fio --name=randread_bs1024_qd4 --rw=randread --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs1024_qd4 --rw=randwrite --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs1024_qd4 --rw=randrw --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=4 --time_based \
+        --group_reporting --rwmixread=50
+# BS:1024 QD:
+# Read direction:
+fio --name=randread_bs1024_qd16 --rw=randread --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs1024_qd16 --rw=randwrite --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs1024_qd16 --rw=randrw --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=16 --time_based \
+        --group_reporting --rwmixread=50
+# BS:1024 QD:
+# Read direction:
+fio --name=randread_bs1024_qd64 --rw=randread --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs1024_qd64 --rw=randwrite --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs1024_qd64 --rw=randrw --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=64 --time_based \
+        --group_reporting --rwmixread=50
+# BS:1024 QD:
+# Read direction:
+fio --name=randread_bs1024_qd128 --rw=randread --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs1024_qd128 --rw=randwrite --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs1024_qd128 --rw=randrw --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=128 --time_based \
+        --group_reporting --rwmixread=50
+# BS:1024 QD:
+# Read direction:
+fio --name=randread_bs1024_qd256 --rw=randread --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Write direction:
+fio --name=randwrite_bs1024_qd256 --rw=randwrite --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting
+# Both direction:
+fio --name=randrw_bs1024_qd256 --rw=randrw --bs=1024k --direct=1 \
+        --ioengine=libaio --iodepth=256 --time_based \
+        --group_reporting --rwmixread=50
