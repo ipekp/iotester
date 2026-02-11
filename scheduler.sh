@@ -8,6 +8,11 @@ dirty_data_sync_percent=$( cat /sys/module/zfs/parameters/zfs_dirty_data_sync_pe
 delay_min_dirty_percent=$( cat /sys/module/zfs/parameters/zfs_delay_min_dirty_percent )
 global_bw=$(( dirty_max / txg_timeout ))
 
+aggr_limit=$( cat /sys/module/zfs/parameters/zfs_vdev_aggregation_limit )
+aggr_limit=$(( aggr_limit / 1024 ))
+aggr_limit_nonrota=$( cat /sys/module/zfs/parameters/zfs_vdev_aggregation_limit_non_rotating )
+aggr_limit_nonrota=$(( aggr_limit_nonrota / 1024 ))
+
 # sync static 50% of phydisk QD
 sync_read_max=$( cat /sys/module/zfs/parameters/zfs_vdev_sync_read_max_active)
 sync_read_min=$( cat /sys/module/zfs/parameters/zfs_vdev_sync_read_min_active)
@@ -28,6 +33,7 @@ echo "Flow settings:"
 echo "Global BW: $global_bw MB/s"
 echo "Delay injection at: $delay_min_dirty_percent %"
 echo "Hard wall at: $dirty_max_percent %"
+echo "Disk aggregation limit: ${aggr_limit}K / non rotational: ${aggr_limit_nonrota}K"
 echo "Sync prio:"
 echo "W: ($sync_write_min/$sync_write_max) - R: ($sync_read_min/$sync_read_max)"
 echo "Async prio:"
