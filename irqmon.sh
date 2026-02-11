@@ -1,6 +1,6 @@
 #!/bin/bash
 # Optimized HBA Interrupt Monitor
-HBA_DRIVER="mpt2sas|mpt3sas"
+HBA_DRIVER=$1
 
 while true; do
     clear

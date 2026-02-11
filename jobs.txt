@@ -13,9 +13,9 @@ fio --name=max_iops --rw=randread --bs=4k --direct=1 \
 	--group_reporting
 
 ## max BW
-fio --name=max_bw --rw=write --bs=1M --direct=1 \
+fio --name=max_bw --rw=write --bs=1M \
 	--ioengine=libaio --iodepth=32 --time_based \
-	--group_reporting 
+	--group_reporting --direct=1
 
 
 # stress tests at various QD. 
