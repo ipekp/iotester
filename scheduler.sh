@@ -44,9 +44,11 @@ scrub_max=$(cat /sys/module/zfs/parameters/zfs_vdev_scrub_max_active)
 trim_min=$(cat /sys/module/zfs/parameters/zfs_vdev_trim_min_active)
 trim_max=$(cat /sys/module/zfs/parameters/zfs_vdev_trim_max_active)
 
+arc_size=$(cat /sys/module/zfs/parameters/zfs_arc_max)
+arc_size_gb=$(( $arc_size / (1024*1024*1024) ))
+
 # --- OUTPUT ---
-echo "=========================================================="
-echo " ZFS WRITE THROTTLE & FLOW CONTROL"
+echo "ARC size:  $arc_size_gb GB"
 echo "=========================================================="
 echo "Hard Wall (Max Dirty Data):  $dirty_max_mb MB"
 echo "Delay Wall (Start Throttling): $delay_start_mb MB ($delay_percent% of max)"
@@ -54,12 +56,8 @@ echo "Soft Wall (Start Syncing):    $dirty_data_sync_mb MB ($sync_percent% of ma
 echo "TXG Timeout:                  $txg_timeout seconds"
 echo "Theoretical Global BW:        $global_bw MB/s"
 echo "----------------------------------------------------------"
-echo " AGGREGATION LIMITS (Request Splicing)"
-echo "----------------------------------------------------------"
 echo "Standard Aggregation:         ${aggr_limit_kb} KB"
 echo "SSD/Non-Rotational:           ${aggr_limit_nonrota_kb} KB"
-echo "----------------------------------------------------------"
-echo " VDEV I/O CONCURRENCY (Queue Depth per VDEV)"
 echo "----------------------------------------------------------"
 printf "%-15s | %-10s | %-10s\n" "Queue Type" "Min Active" "Max Active"
 printf "%-15s | %-10s | %-10s\n" "Sync Read" "$sync_read_min" "$sync_read_max"

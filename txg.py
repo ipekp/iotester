@@ -40,9 +40,14 @@ def get_txg(view:int):
     return lines[-view:] 
 
 def format_rows(out: list):
-    header = ['txg','birth','state','ndirty','nread','nwritten','reads','writes','otime','qtime','wtime','stime']
+
+    header = ['txg','birth','state','ndirty','nread','nwritten','reads','writes','otime','qtime','wtime','stime','BW']
     idx = {name: header.index(name) for name in header}
     for line, row in enumerate(out):
+        if float(out[line][idx['stime']]) > 0:
+            out[line].append( round( int(out[line][idx['nwritten']]) / float(out[line][idx['stime']]) * 1000, 1) )
+        else:
+            out[line].append(0.0)
         for col, val in enumerate(row):
             if col in ( idx['ndirty'], idx['nread'], idx['nwritten'] ):
                 v = round(int(val) / pow(1024,2))
@@ -60,7 +65,7 @@ def format_rows(out: list):
 
 # ez
 def print_txg(out):
-    header = ['txg','birth','state','ndirty','nread','nwritten','reads','writes','otime','qtime','wtime','stime']
+    header = ['txg','birth','state','ndirty','nread','nwritten','reads','writes','otime','qtime','wtime','stime','BW']
     # ensure all rows are strings
     rows = [[str(c) for c in r] for r in out]
     # compute widths per column
@@ -76,12 +81,14 @@ def print_txg(out):
 
 def main(argv=None):
     args = parse_args(argv)
+    # out = format_rows(get_txg(args.n))
+    # print_txg(out)
     try:
         while True:
             os.system('clear')
             out = format_rows(get_txg(args.n))
             print_txg(out)
-            print("\n\nPress Ctrl + c to interrupt")
+            # print("\n\nPress Ctrl + c to interrupt")
             time.sleep(args.t)
     except KeyboardInterrupt:
         print("Interrupted by user")
